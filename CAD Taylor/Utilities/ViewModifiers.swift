@@ -1,0 +1,73 @@
+// ============================================
+// File: ViewModifiers.swift
+// Custom view modifiers for notification handling
+// ============================================
+
+import SwiftUI
+
+struct NotificationHandlerModifier: ViewModifier {
+    @Binding var lines: [Line]
+    @Binding var currentLine: Line
+    @Binding var currentCoordinates: CGPoint
+    @Binding var zoomLevel: CGFloat
+    @Binding var showCoordinates: Bool
+    let canvasSize: CGSize
+    let onExport: () -> Void
+    
+    func body(content: Content) -> some View {
+        content
+            .onReceive(NotificationCenter.default.publisher(for: .newDrawing)) { _ in
+                lines.removeAll()
+                currentLine = Line()
+                currentCoordinates = CGPoint.zero
+                zoomLevel = 1.0
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .savePDF)) { _ in
+                onExport()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .clearCanvas)) { _ in
+                lines.removeAll()
+                currentLine = Line()
+                currentCoordinates = CGPoint.zero
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .undoDrawing)) { _ in
+                if !lines.isEmpty {
+                    lines.removeLast()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .toggleCoordinates)) { _ in
+                showCoordinates.toggle()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { _ in
+                zoomLevel = min(zoomLevel + 0.25, 3.0)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .zoomOut)) { _ in
+                zoomLevel = max(zoomLevel - 0.25, 0.25)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .resetZoom)) { _ in
+                zoomLevel = 1.0
+            }
+    }
+}
+
+extension View {
+    func setupNotificationHandlers(
+        lines: Binding<[Line]>,
+        currentLine: Binding<Line>,
+        currentCoordinates: Binding<CGPoint>,
+        zoomLevel: Binding<CGFloat>,
+        showCoordinates: Binding<Bool>,
+        canvasSize: CGSize,
+        onExport: @escaping () -> Void
+    ) -> some View {
+        modifier(NotificationHandlerModifier(
+            lines: lines,
+            currentLine: currentLine,
+            currentCoordinates: currentCoordinates,
+            zoomLevel: zoomLevel,
+            showCoordinates: showCoordinates,
+            canvasSize: canvasSize,
+            onExport: onExport
+        ))
+    }
+}

@@ -1,0 +1,82 @@
+// ============================================
+// File: DrawingCanvasView.swift
+// Main canvas view with drawing functionality
+// ============================================
+
+import SwiftUI
+
+struct DrawingCanvasView: View {
+    @State private var lines: [Line] = []
+    @State private var currentLine = Line()
+    @State private var currentCoordinates = CGPoint.zero
+    @State private var canvasSize = CGSize(width: 600, height: 400)
+    @State private var showCoordinates = true
+    @State private var zoomLevel: CGFloat = 1.0
+    @State private var pdfURL: URL?  // NEW - holds the opened PDF
+
+
+    @EnvironmentObject var windowManager: WindowManager  // NEW
+    
+    var body: some View {
+        VStack {
+            
+ 
+                // Show drawing canvas
+                ZStack {
+                    Rectangle()
+                        .fill(Color.white)
+                        .border(Color.gray, width: 1)
+                    
+                    DrawingView(lines: lines, currentLine: currentLine, canvasSize: $canvasSize)
+                        .scaleEffect(zoomLevel)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            let adjustedLocation = CGPoint(
+                                x: value.location.x / zoomLevel,
+                                y: value.location.y / zoomLevel
+                            )
+                            currentLine.points.append(adjustedLocation)
+                            currentCoordinates = adjustedLocation
+                        }
+                        .onEnded { _ in
+                            lines.append(currentLine)
+                            currentLine = Line()
+                        }
+                )
+ 
+            CanvasToolbar(
+                onClear: clearCanvas,
+                onExport: exportPDF,
+                showCoordinates: showCoordinates,
+                currentCoordinates: currentCoordinates,
+                zoomLevel: zoomLevel
+           )
+        }
+        .padding()
+        .frame(minWidth: 700, minHeight: 600)
+        .setupNotificationHandlers(
+            lines: $lines,
+            currentLine: $currentLine,
+            currentCoordinates: $currentCoordinates,
+            zoomLevel: $zoomLevel,
+            showCoordinates: $showCoordinates,
+            canvasSize: canvasSize,
+            onExport: exportPDF
+        )
+    }
+
+    private func clearCanvas() {
+        lines.removeAll()
+        currentLine = Line()
+        currentCoordinates = CGPoint.zero
+    }
+    
+    private func exportPDF() {
+        PDFExporter.savePDFWithDialog(lines: lines, canvasSize: canvasSize)
+    }
+
+}
+
