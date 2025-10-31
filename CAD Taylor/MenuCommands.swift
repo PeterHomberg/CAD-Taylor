@@ -15,12 +15,23 @@ struct MenuCommands: Commands {
             .keyboardShortcut("n", modifiers: .command)
         }
         
-        
         CommandGroup(after: .newItem) {
-            Button("Save as PDF...") {
-                NotificationCenter.default.post(name: .savePDF, object: nil)
+            Button("Open Drawing...") {
+                NotificationCenter.default.post(name: .openDrawing, object: nil)
+            }
+            .keyboardShortcut("o", modifiers: .command)
+            
+            Divider()
+            
+            Button("Save Drawing...") {
+                NotificationCenter.default.post(name: .saveDrawing, object: nil)
             }
             .keyboardShortcut("s", modifiers: .command)
+            
+            Button("Export as PDF...") {
+                NotificationCenter.default.post(name: .savePDF, object: nil)
+            }
+            .keyboardShortcut("e", modifiers: [.command, .shift])
             
             Divider()
         }
