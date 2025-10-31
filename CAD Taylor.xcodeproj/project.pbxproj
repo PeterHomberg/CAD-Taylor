@@ -17,7 +17,6 @@
 		FBF9355E2E9390E1003618E6 /* Line.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF9355D2E9390E1003618E6 /* Line.swift */; };
 		FBF935612E93913C003618E6 /* PDFExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF935602E93913C003618E6 /* PDFExporter.swift */; };
 		FBF935642E9391A1003618E6 /* DrawingCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF935632E9391A1003618E6 /* DrawingCanvasView.swift */; };
-		FBF935662E939201003618E6 /* CanvasToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF935652E939201003618E6 /* CanvasToolbar.swift */; };
 		FBF935682E939233003618E6 /* DrawingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF935672E939233003618E6 /* DrawingView.swift */; };
 		FBF9356B2E939281003618E6 /* ViewModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF9356A2E939281003618E6 /* ViewModifiers.swift */; };
 		FBF9356D2E939F20003618E6 /* WindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF9356C2E939F20003618E6 /* WindowManager.swift */; };
@@ -36,7 +35,6 @@
 		FBF9355D2E9390E1003618E6 /* Line.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Line.swift; sourceTree = "<group>"; };
 		FBF935602E93913C003618E6 /* PDFExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFExporter.swift; sourceTree = "<group>"; };
 		FBF935632E9391A1003618E6 /* DrawingCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingCanvasView.swift; sourceTree = "<group>"; };
-		FBF935652E939201003618E6 /* CanvasToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasToolbar.swift; sourceTree = "<group>"; };
 		FBF935672E939233003618E6 /* DrawingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingView.swift; sourceTree = "<group>"; };
 		FBF9356A2E939281003618E6 /* ViewModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModifiers.swift; sourceTree = "<group>"; };
 		FBF9356C2E939F20003618E6 /* WindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowManager.swift; sourceTree = "<group>"; };
@@ -116,7 +114,6 @@
 			isa = PBXGroup;
 			children = (
 				FBF935632E9391A1003618E6 /* DrawingCanvasView.swift */,
-				FBF935652E939201003618E6 /* CanvasToolbar.swift */,
 				FBF935672E939233003618E6 /* DrawingView.swift */,
 			);
 			path = Views;
@@ -211,7 +208,6 @@
 				FBE90E3C2E2B7E2E00C0CCC3 /* CADTaylorApp.swift in Sources */,
 				FBF935642E9391A1003618E6 /* DrawingCanvasView.swift in Sources */,
 				FB5B17342EB460B800128AD0 /* drawing_document.swift in Sources */,
-				FBF935662E939201003618E6 /* CanvasToolbar.swift in Sources */,
 				FBF9356D2E939F20003618E6 /* WindowManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

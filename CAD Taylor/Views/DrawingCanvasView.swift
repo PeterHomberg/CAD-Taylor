@@ -41,16 +41,18 @@ struct DrawingCanvasView: View {
                         currentLine = Line()
                     }
             )
- 
-            CanvasToolbar(
-                onClear: clearCanvas,
-                onExport: exportPDF,
-                onSave: saveDrawing,
-                onOpen: openDrawing,
-                showCoordinates: showCoordinates,
-                currentCoordinates: currentCoordinates,
-                zoomLevel: zoomLevel
-            )
+            
+            // Coordinates display (only if enabled)
+            if showCoordinates {
+                HStack {
+                    Spacer()
+                    Text("X: \(Int(currentCoordinates.x)), Y: \(Int(currentCoordinates.y)) | Zoom: \(Int(zoomLevel * 100))%")
+                        .font(.system(size: 16, design: .monospaced))
+                        .padding()
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(8)
+                }
+            }
         }
         .padding()
         .frame(minWidth: 700, minHeight: 600)

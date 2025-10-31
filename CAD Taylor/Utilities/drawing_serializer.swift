@@ -23,15 +23,26 @@ class DrawingSerializer {
         savePanel.allowedContentTypes = [.json]
         savePanel.nameFieldStringValue = "drawing_\(Date().timeIntervalSince1970).json"
         savePanel.canCreateDirectories = true
+        savePanel.allowsOtherFileTypes = false
+        savePanel.isExtensionHidden = false
         
+        // Enable overwriting existing files
         savePanel.begin { response in
             if response == .OK, let url = savePanel.url {
                 do {
-                    try jsonData.write(to: url)
+                    // Write with .atomic option to safely overwrite
+                    try jsonData.write(to: url, options: .atomic)
                     print("Drawing saved successfully: \(url.lastPathComponent)")
                     NSWorkspace.shared.activateFileViewerSelecting([url])
                 } catch {
                     print("Error saving drawing: \(error)")
+                    // Show error alert
+                    let alert = NSAlert()
+                    alert.messageText = "Save Failed"
+                    alert.informativeText = "Could not save the drawing: \(error.localizedDescription)"
+                    alert.alertStyle = .critical
+                    alert.addButton(withTitle: "OK")
+                    alert.runModal()
                 }
             }
         }
@@ -64,6 +75,13 @@ class DrawingSerializer {
         } catch {
             completion(.failure(error))
             print("Error loading drawing: \(error)")
+            // Show error alert
+            let alert = NSAlert()
+            alert.messageText = "Open Failed"
+            alert.informativeText = "Could not open the drawing: \(error.localizedDescription)"
+            alert.alertStyle = .critical
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
         }
     }
     
