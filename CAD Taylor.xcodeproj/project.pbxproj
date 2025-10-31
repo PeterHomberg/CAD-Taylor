@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FB5B17342EB460B800128AD0 /* drawing_document.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB5B17332EB460B800128AD0 /* drawing_document.swift */; };
+		FB5B17362EB461EE00128AD0 /* drawing_serializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB5B17352EB461EE00128AD0 /* drawing_serializer.swift */; };
 		FBE90E3C2E2B7E2E00C0CCC3 /* CADTaylorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE90E3B2E2B7E2E00C0CCC3 /* CADTaylorApp.swift */; };
 		FBE90E402E2B7E3000C0CCC3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FBE90E3F2E2B7E3000C0CCC3 /* Assets.xcassets */; };
 		FBE90E432E2B7E3000C0CCC3 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FBE90E422E2B7E3000C0CCC3 /* Preview Assets.xcassets */; };
@@ -22,6 +24,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		FB5B17332EB460B800128AD0 /* drawing_document.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = drawing_document.swift; sourceTree = "<group>"; };
+		FB5B17352EB461EE00128AD0 /* drawing_serializer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = drawing_serializer.swift; sourceTree = "<group>"; };
 		FBE90E382E2B7E2E00C0CCC3 /* CAD Taylor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CAD Taylor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		FBE90E3B2E2B7E2E00C0CCC3 /* CADTaylorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CADTaylorApp.swift; sourceTree = "<group>"; };
 		FBE90E3F2E2B7E3000C0CCC3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -94,6 +98,7 @@
 		FBF9355C2E9390AC003618E6 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				FB5B17332EB460B800128AD0 /* drawing_document.swift */,
 				FBF9355D2E9390E1003618E6 /* Line.swift */,
 			);
 			path = Models;
@@ -120,6 +125,7 @@
 		FBF935692E939263003618E6 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				FB5B17352EB461EE00128AD0 /* drawing_serializer.swift */,
 				FBF9356A2E939281003618E6 /* ViewModifiers.swift */,
 			);
 			path = Utilities;
@@ -195,6 +201,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FB5B17362EB461EE00128AD0 /* drawing_serializer.swift in Sources */,
 				FBF935612E93913C003618E6 /* PDFExporter.swift in Sources */,
 				FBF935592E938FE0003618E6 /* MenuCommands.swift in Sources */,
 				FBF9355E2E9390E1003618E6 /* Line.swift in Sources */,
@@ -203,6 +210,7 @@
 				FBF9355B2E939050003618E6 /* NotificationNames.swift in Sources */,
 				FBE90E3C2E2B7E2E00C0CCC3 /* CADTaylorApp.swift in Sources */,
 				FBF935642E9391A1003618E6 /* DrawingCanvasView.swift in Sources */,
+				FB5B17342EB460B800128AD0 /* drawing_document.swift in Sources */,
 				FBF935662E939201003618E6 /* CanvasToolbar.swift in Sources */,
 				FBF9356D2E939F20003618E6 /* WindowManager.swift in Sources */,
 			);

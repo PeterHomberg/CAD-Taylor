@@ -7,7 +7,8 @@ import Foundation
 
 extension Notification.Name {
     static let newDrawing = Notification.Name("newDrawing")
-
+    static let saveDrawing = Notification.Name("saveDrawing")
+    static let openDrawing = Notification.Name("openDrawing")
     static let savePDF = Notification.Name("savePDF")
     static let clearCanvas = Notification.Name("clearCanvas")
     static let undoDrawing = Notification.Name("undoDrawing")
