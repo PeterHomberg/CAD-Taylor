@@ -13,8 +13,6 @@ struct NotificationHandlerModifier: ViewModifier {
     @Binding var showCoordinates: Bool
     let canvasSize: CGSize
     let onExport: () -> Void
-    let onSave: () -> Void
-    let onOpen: () -> Void
     
     func body(content: Content) -> some View {
         content
@@ -23,12 +21,6 @@ struct NotificationHandlerModifier: ViewModifier {
                 currentLine = Line()
                 currentCoordinates = CGPoint.zero
                 zoomLevel = 1.0
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .saveDrawing)) { _ in
-                onSave()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .openDrawing)) { _ in
-                onOpen()
             }
             .onReceive(NotificationCenter.default.publisher(for: .savePDF)) { _ in
                 onExport()
@@ -46,6 +38,11 @@ struct NotificationHandlerModifier: ViewModifier {
             .onReceive(NotificationCenter.default.publisher(for: .toggleCoordinates)) { _ in
                 showCoordinates.toggle()
             }
+        /*
+            .onReceive(NotificationCenter.default.publisher(for: .toggleMillimeters)) {  notification in
+                print("Toggle Millimeters notification received! \(notification) Toggle: \(coord)")
+            }
+         */
             .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { _ in
                 zoomLevel = min(zoomLevel + 0.25, 3.0)
             }
@@ -66,9 +63,7 @@ extension View {
         zoomLevel: Binding<CGFloat>,
         showCoordinates: Binding<Bool>,
         canvasSize: CGSize,
-        onExport: @escaping () -> Void,
-        onSave: @escaping () -> Void,
-        onOpen: @escaping () -> Void
+        onExport: @escaping () -> Void
     ) -> some View {
         modifier(NotificationHandlerModifier(
             lines: lines,
@@ -77,9 +72,13 @@ extension View {
             zoomLevel: zoomLevel,
             showCoordinates: showCoordinates,
             canvasSize: canvasSize,
-            onExport: onExport,
-            onSave: onSave,
-            onOpen: onOpen
+            onExport: onExport
         ))
+    }
+}
+
+struct Previews_ViewModifiers_Previews: PreviewProvider {
+    static var previews: some View {
+        /*@START_MENU_TOKEN@*/Text("Hello, World!")/*@END_MENU_TOKEN@*/
     }
 }

@@ -6,6 +6,7 @@
 import SwiftUI
 
 struct MenuCommands: Commands {
+        
     var body: some Commands {
         // File Menu
         CommandGroup(replacing: .newItem) {
@@ -50,11 +51,12 @@ struct MenuCommands: Commands {
         }
         
         // View Menu
-        CommandMenu("View") {
-            Button("Show Coordinates") {
+        CommandGroup(before: .sidebar) {
+            Button("Show/Hide Coordinates") {
                 NotificationCenter.default.post(name: .toggleCoordinates, object: nil)
             }
             .keyboardShortcut("c", modifiers: [.command, .shift])
+            
             
             Divider()
             
