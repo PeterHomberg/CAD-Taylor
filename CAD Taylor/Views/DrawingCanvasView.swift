@@ -14,7 +14,7 @@ struct DrawingCanvasView: View {
     @State private var zoomLevel: CGFloat = 1.0
     @State private var pdfURL: URL?
     @Environment(\.coord) var coord
-    let onExport: () -> Void
+    //let onExport: () -> Void
     //@EnvironmentObject var windowManager: WindowManager
     
     var body: some View {
@@ -56,7 +56,7 @@ struct DrawingCanvasView: View {
             zoomLevel = 1.0
         }
         .onReceive(NotificationCenter.default.publisher(for: .savePDF)) { _ in
-            onExport()
+            //onExport()
         }
         .onReceive(NotificationCenter.default.publisher(for: .clearCanvas)) { _ in
             lines.removeAll()
