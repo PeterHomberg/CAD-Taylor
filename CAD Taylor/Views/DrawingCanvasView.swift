@@ -49,6 +49,7 @@ struct DrawingCanvasView: View {
         .onReceive(notificationToggleMillimeters) {  notification in
             print("Toggle Millimeters notification received! \(notification) Toggle: \(coord)")
         }
+        /*
         .onReceive(NotificationCenter.default.publisher(for: .newDrawing)) { _ in
             lines.removeAll()
             currentLine = Line()
@@ -71,11 +72,11 @@ struct DrawingCanvasView: View {
         .onReceive(NotificationCenter.default.publisher(for: .toggleCoordinates)) { _ in
             showCoordinates.toggle()
         }
-    /*
+         
         .onReceive(NotificationCenter.default.publisher(for: .toggleMillimeters)) {  notification in
             print("Toggle Millimeters notification received! \(notification) Toggle: \(coord)")
         }
-     */
+     
         .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { _ in
             zoomLevel = min(zoomLevel + 0.25, 3.0)
         }
@@ -85,9 +86,19 @@ struct DrawingCanvasView: View {
         .onReceive(NotificationCenter.default.publisher(for: .resetZoom)) { _ in
             zoomLevel = 1.0
         }
+         */
 
         .padding()
         .frame(minWidth: 700, minHeight: 600)
+        .setupNotificationHandlers(
+            lines: $lines,
+            currentLine: $currentLine,
+            currentCoordinates: $currentCoordinates,
+            zoomLevel: $zoomLevel,
+            showCoordinates: $showCoordinates,
+            canvasSize: canvasSize,
+            onExport: exportPDF
+        )
     }
     
     private func clearCanvas() {

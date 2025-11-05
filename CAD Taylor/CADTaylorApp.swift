@@ -25,7 +25,7 @@ struct CADTaylorApp: App {
             
         }
         .commands {
-            //MenuCommands()
+            MenuCommands()
             // Nur der Toggle inline, weil er State braucht
             CommandGroup(before: .sidebar) {
                 Toggle("Show in Millimeters", isOn: $showInMillimeters)
