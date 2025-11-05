@@ -13,6 +13,7 @@ struct DrawingCanvasView: View {
     @State private var showCoordinates = true
     @State private var zoomLevel: CGFloat = 1.0
     @State private var pdfURL: URL?
+    @Binding var showInMillimeters: Bool
     @Environment(\.coord) var coord
     //let onExport: () -> Void
     //@EnvironmentObject var windowManager: WindowManager
@@ -68,12 +69,6 @@ struct DrawingCanvasView: View {
                 Spacer()
                 
                 if showCoordinates {
-                    /*---------------------------------------
-                     to debug @State property use:
-                     (lldb) po _showInMillimeters.wrappedValue
-                     
-                     Swift ist scheisse!
-                    
                     let xFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.x, inMillimeters: showInMillimeters)
                     let yFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.y, inMillimeters: showInMillimeters)
                     let unit = CoordinateConverter.unitLabel(inMillimeters: showInMillimeters)
@@ -82,7 +77,6 @@ struct DrawingCanvasView: View {
                         .padding()
                         .background(Color.gray.opacity(0.1))
                         .cornerRadius(8)
-                     --------------------------------------*/
                     
                 }
             }

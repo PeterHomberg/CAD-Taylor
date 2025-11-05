@@ -13,7 +13,7 @@ struct CADTaylorApp: App {
 
     var body: some Scene {
         WindowGroup {
-            DrawingCanvasView()
+            DrawingCanvasView(showInMillimeters: $showInMillimeters)
             //ContentView()
                 //.environmentObject(windowManager)
                 .environment(\.coord, showInMillimeters ? .mill : .pix)
