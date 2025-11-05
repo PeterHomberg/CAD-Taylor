@@ -43,9 +43,50 @@ struct DrawingCanvasView: View {
                         lines.append(currentLine)
                         currentLine = Line()
                     }
-            )
-            
-        }
+            ) // .gesture
+            HStack {
+                Button("Clear Canvas") {
+                    clearCanvas()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color.red)
+                .foregroundColor(Color.white)
+                .cornerRadius(8)
+                .buttonStyle(PlainButtonStyle())
+                
+                Button("Export PDF") {
+                    exportPDF()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(Color.green)
+                .foregroundColor(Color.white)
+                .cornerRadius(8)
+                .buttonStyle(PlainButtonStyle())
+                
+                Spacer()
+                
+                if showCoordinates {
+                    /*---------------------------------------
+                     to debug @State property use:
+                     (lldb) po _showInMillimeters.wrappedValue
+                     
+                     Swift ist scheisse!
+                    
+                    let xFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.x, inMillimeters: showInMillimeters)
+                    let yFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.y, inMillimeters: showInMillimeters)
+                    let unit = CoordinateConverter.unitLabel(inMillimeters: showInMillimeters)
+                                        Text("X: \(xFormatted) \(unit), Y: \(yFormatted) \(unit) | Zoom: \(Int(zoomLevel * 100))%")
+                        .font(.system(size: 16, design: .monospaced))
+                        .padding()
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(8)
+                     --------------------------------------*/
+                    
+                }
+            }
+        }// VStack
         .onReceive(notificationToggleMillimeters) {  notification in
             print("Toggle Millimeters notification received! \(notification) Toggle: \(coord)")
         }
