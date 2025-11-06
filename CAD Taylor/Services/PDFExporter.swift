@@ -25,6 +25,11 @@ class PDFExporter {
         // Begin page
         pdfContext.beginPDFPage(nil)
         
+        // WICHTIG: PDF-Koordinatensystem umkehren (Y-Achse spiegeln)
+        // PDF hat Ursprung unten links, SwiftUI hat Ursprung oben links
+        pdfContext.translateBy(x: 0, y: canvasSize.height)
+        pdfContext.scaleBy(x: 1.0, y: -1.0)
+ 
         // Set up drawing context
         if #available(macOS 10.15, *) {
             pdfContext.setStrokeColor(NSColor.systemBlue.cgColor)
