@@ -13,129 +13,94 @@ struct DrawingCanvasView: View {
     @State private var showCoordinates = true
     @State private var zoomLevel: CGFloat = 1.0
     @State private var pdfURL: URL?
+    @State private var selectedMode: DrawingMode = .freehand
+    @State private var temporaryShape: TemporaryShape?
     @Binding var showInMillimeters: Bool
     @Environment(\.coord) var coord
-    //let onExport: () -> Void
-    //@EnvironmentObject var windowManager: WindowManager
     
     var body: some View {
-        VStack {
-            // Drawing canvas
-            ZStack {
-                Rectangle()
-                    .fill(Color.white)
-                    .border(Color.gray, width: 1)
-                
-                // Mouse tracking overlay
-                MouseTrackingView { location in
-                    let adjustedLocation = CGPoint(
-                        x: location.x / zoomLevel,
-                        y: location.y / zoomLevel
-                    )
-                    currentCoordinates = adjustedLocation
-                }
-                
-                DrawingView(lines: lines, currentLine: currentLine, canvasSize: $canvasSize)
-                    .scaleEffect(zoomLevel)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
+        HStack(spacing: 0) {
+            // Main canvas area
+            VStack {
+                // Drawing canvas
+                ZStack {
+                    Rectangle()
+                        .fill(Color.white)
+                        .border(Color.gray, width: 1)
+                    
+                    // Mouse tracking overlay
+                    MouseTrackingView { location in
                         let adjustedLocation = CGPoint(
-                            x: value.location.x / zoomLevel,
-                            y: value.location.y / zoomLevel
+                            x: location.x / zoomLevel,
+                            y: location.y / zoomLevel
                         )
-                        currentLine.points.append(adjustedLocation)
                         currentCoordinates = adjustedLocation
                     }
-                    .onEnded { _ in
-                        lines.append(currentLine)
-                        currentLine = Line()
-                    }
-            ) // .gesture
-            HStack {
-                Button("Clear Canvas") {
-                    clearCanvas()
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(Color.red)
-                .foregroundColor(Color.white)
-                .cornerRadius(8)
-                .buttonStyle(PlainButtonStyle())
-                
-                Button("Export PDF") {
-                    exportPDF()
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(Color.green)
-                .foregroundColor(Color.white)
-                .cornerRadius(8)
-             
-                .buttonStyle(PlainButtonStyle())
-                
-                Spacer()
-                
-                if showCoordinates {
-                    let xFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.x, inMillimeters: showInMillimeters)
-                    let yFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.y, inMillimeters: showInMillimeters)
-                    let unit = CoordinateConverter.unitLabel(inMillimeters: showInMillimeters)
-                                        Text("X: \(xFormatted) \(unit), Y: \(yFormatted) \(unit) | Zoom: \(Int(zoomLevel * 100))%")
-                        .font(.system(size: 16, design: .monospaced))
-                        .padding()
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(8)
                     
+                    DrawingView(
+                        lines: lines,
+                        currentLine: currentLine,
+                        temporaryShape: temporaryShape,
+                        canvasSize: $canvasSize
+                    )
+                    .scaleEffect(zoomLevel)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            handleDrawing(at: value.location)
+                        }
+                        .onEnded { value in
+                            handleDrawingEnd(at: value.location)
+                        }
+                )
+                
+                // Bottom toolbar
+                HStack {
+                    Button("Clear Canvas") {
+                        clearCanvas()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.red)
+                    .foregroundColor(Color.white)
+                    .cornerRadius(8)
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    Button("Export PDF") {
+                        exportPDF()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.green)
+                    .foregroundColor(Color.white)
+                    .cornerRadius(8)
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    Spacer()
+                    
+                    if showCoordinates {
+                        let xFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.x, inMillimeters: showInMillimeters)
+                        let yFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.y, inMillimeters: showInMillimeters)
+                        let unit = CoordinateConverter.unitLabel(inMillimeters: showInMillimeters)
+                        Text("X: \(xFormatted) \(unit), Y: \(yFormatted) \(unit) | Zoom: \(Int(zoomLevel * 100))%")
+                            .font(.system(size: 16, design: .monospaced))
+                            .padding()
+                            .background(Color.gray.opacity(0.1))
+                            .cornerRadius(8)
+                    }
                 }
             }
-        }// VStack
-        .onReceive(notificationToggleMillimeters) {  notification in
+            .padding()
+            
+            // Right sidebar with drawing tools
+            DrawingToolbar(selectedMode: $selectedMode)
+        }
+        .onReceive(notificationToggleMillimeters) { notification in
             print("Toggle Millimeters notification received! \(notification) Toggle: \(coord)")
         }
-        /*
-        .onReceive(NotificationCenter.default.publisher(for: .newDrawing)) { _ in
-            lines.removeAll()
-            currentLine = Line()
-            currentCoordinates = CGPoint.zero
-            zoomLevel = 1.0
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .savePDF)) { _ in
-            //onExport()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .clearCanvas)) { _ in
-            lines.removeAll()
-            currentLine = Line()
-            currentCoordinates = CGPoint.zero
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .undoDrawing)) { _ in
-            if !lines.isEmpty {
-                lines.removeLast()
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .toggleCoordinates)) { _ in
-            showCoordinates.toggle()
-        }
-         
-        .onReceive(NotificationCenter.default.publisher(for: .toggleMillimeters)) {  notification in
-            print("Toggle Millimeters notification received! \(notification) Toggle: \(coord)")
-        }
-     
-        .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { _ in
-            zoomLevel = min(zoomLevel + 0.25, 3.0)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .zoomOut)) { _ in
-            zoomLevel = max(zoomLevel - 0.25, 0.25)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .resetZoom)) { _ in
-            zoomLevel = 1.0
-        }
-         */
-
-        .padding()
-        .frame(minWidth: 700, minHeight: 600)
+        .frame(minWidth: 900, minHeight: 600)
         .setupNotificationHandlers(
             lines: $lines,
             currentLine: $currentLine,
@@ -147,19 +112,129 @@ struct DrawingCanvasView: View {
         )
     }
     
+    private func handleDrawing(at location: CGPoint) {
+        let adjustedLocation = CGPoint(
+            x: location.x / zoomLevel,
+            y: location.y / zoomLevel
+        )
+        currentCoordinates = adjustedLocation
+        
+        switch selectedMode {
+        case .freehand:
+            currentLine.points.append(adjustedLocation)
+            
+        case .straightLine:
+            if temporaryShape == nil {
+                // Erster Punkt
+                temporaryShape = TemporaryShape(mode: .straightLine, points: [adjustedLocation])
+            } else {
+                // Während des Ziehens: Endpunkt aktualisieren
+                temporaryShape?.points = [temporaryShape!.points[0], adjustedLocation]
+            }
+            
+        case .circleArc:
+            // Wird bei Klicks behandelt, nicht bei Drag
+            break
+        }
+    }
+    
+    private func handleDrawingEnd(at location: CGPoint) {
+        let adjustedLocation = CGPoint(
+            x: location.x / zoomLevel,
+            y: location.y / zoomLevel
+        )
+        
+        switch selectedMode {
+        case .freehand:
+            lines.append(currentLine)
+            currentLine = Line()
+            
+        case .straightLine:
+            if let shape = temporaryShape, shape.points.count == 2 {
+                // Gerade Linie fertig
+                var line = Line()
+                line.points = shape.points
+                lines.append(line)
+                temporaryShape = nil
+            }
+            
+        case .circleArc:
+            if temporaryShape == nil {
+                temporaryShape = TemporaryShape(mode: .circleArc, points: [adjustedLocation])
+            } else if temporaryShape!.points.count == 1 {
+                temporaryShape?.points.append(adjustedLocation)
+            } else if temporaryShape!.points.count == 2 {
+                temporaryShape?.points.append(adjustedLocation)
+                // Kreisbogen berechnen
+                if let arc = calculateCircleArc(points: temporaryShape!.points) {
+                    lines.append(arc)
+                }
+                temporaryShape = nil
+            }
+        }
+    }
+    
+    private func calculateCircleArc(points: [CGPoint]) -> Line? {
+        guard points.count == 3 else { return nil }
+        
+        let p1 = points[0]
+        let p2 = points[1]
+        let p3 = points[2]
+        
+        // Kreismittelpunkt berechnen
+        let d = 2 * (p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y))
+        
+        guard abs(d) > 0.001 else { return nil } // Punkte sind kollinear
+        
+        let ux = ((p1.x * p1.x + p1.y * p1.y) * (p2.y - p3.y) +
+                  (p2.x * p2.x + p2.y * p2.y) * (p3.y - p1.y) +
+                  (p3.x * p3.x + p3.y * p3.y) * (p1.y - p2.y)) / d
+        
+        let uy = ((p1.x * p1.x + p1.y * p1.y) * (p3.x - p2.x) +
+                  (p2.x * p2.x + p2.y * p2.y) * (p1.x - p3.x) +
+                  (p3.x * p3.x + p3.y * p3.y) * (p2.x - p1.x)) / d
+        
+        let center = CGPoint(x: ux, y: uy)
+        let radius = sqrt(pow(p1.x - center.x, 2) + pow(p1.y - center.y, 2))
+        
+        // Winkel berechnen
+        let angle1 = atan2(p1.y - center.y, p1.x - center.x)
+        let angle2 = atan2(p2.y - center.y, p2.x - center.x)
+        let angle3 = atan2(p3.y - center.y, p3.x - center.x)
+        
+        // Bogen in Punkte umwandeln
+        var arcPoints: [CGPoint] = []
+        let segments = 50
+        
+        for i in 0...segments {
+            let t = CGFloat(i) / CGFloat(segments)
+            let angle = angle1 + (angle3 - angle1) * t
+            let x = center.x + radius * cos(angle)
+            let y = center.y + radius * sin(angle)
+            arcPoints.append(CGPoint(x: x, y: y))
+        }
+        
+        var line = Line()
+        line.points = arcPoints
+        return line
+    }
+    
     private func clearCanvas() {
         lines.removeAll()
         currentLine = Line()
+        temporaryShape = nil
         currentCoordinates = CGPoint.zero
     }
     
     private func exportPDF() {
         PDFExporter.savePDFWithDialog(lines: lines, canvasSize: canvasSize)
     }
+    
     let notificationToggleMillimeters = NotificationCenter.default
         .publisher(for: .notificToggleMillName)
         .receive(on: RunLoop.main)
 }
+
 // MARK: - Mouse Tracking View
 struct MouseTrackingView: NSViewRepresentable {
     let onMouseMoved: (CGPoint) -> Void

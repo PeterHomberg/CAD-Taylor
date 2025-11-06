@@ -8,6 +8,7 @@ import SwiftUI
 struct DrawingView: View {
     let lines: [Line]
     let currentLine: Line
+    let temporaryShape: TemporaryShape?
     @Binding var canvasSize: CGSize
     
     var body: some View {
@@ -30,11 +31,27 @@ struct DrawingView: View {
                     }
                 }
                 
-                // Draw current line being drawn
+                // Draw current freehand line being drawn
                 if currentLine.points.count > 1 {
                     path.move(to: currentLine.points[0])
                     for point in currentLine.points.dropFirst() {
                         path.addLine(to: point)
+                    }
+                }
+                
+                // Draw temporary shape (straight line or circle arc preview)
+                if let temp = temporaryShape {
+                    if temp.points.count > 1 {
+                        path.move(to: temp.points[0])
+                        for point in temp.points.dropFirst() {
+                            path.addLine(to: point)
+                        }
+                    }
+                    
+                    // Draw points as circles
+                    for point in temp.points {
+                        let circleRect = CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)
+                        path.addEllipse(in: circleRect)
                     }
                 }
             }
@@ -42,4 +59,3 @@ struct DrawingView: View {
         }
     }
 }
-
