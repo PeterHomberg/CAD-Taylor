@@ -26,10 +26,20 @@ struct DrawingCanvasView: View {
                     .fill(Color.white)
                     .border(Color.gray, width: 1)
                 
+                // Mouse tracking overlay
+                MouseTrackingView { location in
+                    let adjustedLocation = CGPoint(
+                        x: location.x / zoomLevel,
+                        y: location.y / zoomLevel
+                    )
+                    currentCoordinates = adjustedLocation
+                }
+                
                 DrawingView(lines: lines, currentLine: currentLine, canvasSize: $canvasSize)
                     .scaleEffect(zoomLevel)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
@@ -64,6 +74,7 @@ struct DrawingCanvasView: View {
                 .background(Color.green)
                 .foregroundColor(Color.white)
                 .cornerRadius(8)
+             
                 .buttonStyle(PlainButtonStyle())
                 
                 Spacer()
@@ -149,4 +160,57 @@ struct DrawingCanvasView: View {
         .publisher(for: .notificToggleMillName)
         .receive(on: RunLoop.main)
 }
+// MARK: - Mouse Tracking View
+struct MouseTrackingView: NSViewRepresentable {
+    let onMouseMoved: (CGPoint) -> Void
+    
+    func makeNSView(context: Context) -> NSView {
+        let view = MouseTrackingNSView()
+        view.onMouseMoved = onMouseMoved
+        return view
+    }
+    
+    func updateNSView(_ nsView: NSView, context: Context) {
+        if let trackingView = nsView as? MouseTrackingNSView {
+            trackingView.onMouseMoved = onMouseMoved
+        }
+    }
+}
 
+class MouseTrackingNSView: NSView {
+    var onMouseMoved: ((CGPoint) -> Void)?
+    private var trackingArea: NSTrackingArea?
+    
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        
+        if let trackingArea = trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+        
+        let options: NSTrackingArea.Options = [
+            .mouseMoved,
+            .activeInKeyWindow,
+            .inVisibleRect
+        ]
+        
+        trackingArea = NSTrackingArea(
+            rect: bounds,
+            options: options,
+            owner: self,
+            userInfo: nil
+        )
+        
+        if let trackingArea = trackingArea {
+            addTrackingArea(trackingArea)
+        }
+    }
+    
+    override func mouseMoved(with event: NSEvent) {
+        let location = convert(event.locationInWindow, from: nil)
+        // NSView hat Ursprung unten links, SwiftUI hat Ursprung oben links
+        // Daher Y-Koordinate umrechnen
+        let flippedLocation = CGPoint(x: location.x, y: bounds.height - location.y)
+        onMouseMoved?(flippedLocation)
+    }
+}
