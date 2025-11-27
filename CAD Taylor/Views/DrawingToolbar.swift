@@ -21,46 +21,66 @@ struct DrawingToolbar: View {
                 .font(.headline)
                 .padding(.bottom, 10)
             
-            // Freehand Drawing
-            ToolButton(
-                title: "Freehand",
-                icon: "pencil.tip",
-                isSelected: selectedMode == .freehand
-            ) {
-                selectedMode = .freehand
+            Group {
+                // Freehand Drawing
+                ToolButton(
+                    title: "Freehand",
+                    icon: "pencil.tip",
+                    isSelected: selectedMode == .freehand
+                ) {
+                    selectedMode = .freehand
+                }
+                
+                Divider()
+                
+                // Straight Line
+                ToolButton(
+                    title: "Straight Line",
+                    icon: "line.diagonal",
+                    isSelected: selectedMode == .straightLine
+                ) {
+                    selectedMode = .straightLine
+                }
+                
+                Text("Click start point, then end point")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                    .padding(.leading, 8)
+                
+                Divider()
             }
             
-            Divider()
-            
-            // Straight Line
-            ToolButton(
-                title: "Straight Line",
-                icon: "line.diagonal",
-                isSelected: selectedMode == .straightLine
-            ) {
-                selectedMode = .straightLine
+            Group {
+                // Circle Arc
+                ToolButton(
+                    title: "Circle Arc",
+                    icon: "circle.lefthalf.filled",
+                    isSelected: selectedMode == .circleArc
+                ) {
+                    selectedMode = .circleArc
+                }
+                
+                Text("Click three points to define arc")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                    .padding(.leading, 8)
+                
+                Divider()
+                
+                // Square
+                ToolButton(
+                    title: "Square",
+                    icon: "square",
+                    isSelected: selectedMode == .square
+                ) {
+                    selectedMode = .square
+                }
+                
+                Text("Click top-left, then drag to bottom-right")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                    .padding(.leading, 8)
             }
-            
-            Text("Click start point, then end point")
-                .font(.caption)
-                .foregroundColor(.gray)
-                .padding(.leading, 8)
-            
-            Divider()
-            
-            // Circle Arc
-            ToolButton(
-                title: "Circle Arc",
-                icon: "circle.lefthalf.filled",
-                isSelected: selectedMode == .circleArc
-            ) {
-                selectedMode = .circleArc
-            }
-            
-            Text("Click three points to define arc")
-                .font(.caption)
-                .foregroundColor(.gray)
-                .padding(.leading, 8)
             
             Spacer()
         }

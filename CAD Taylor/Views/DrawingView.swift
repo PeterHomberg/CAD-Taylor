@@ -39,9 +39,13 @@ struct DrawingView: View {
                     }
                 }
                 
-                // Draw temporary shape (straight line or circle arc preview)
+                // Draw temporary shape (straight line, square, or circle arc preview)
                 if let temp = temporaryShape {
-                    if temp.points.count > 1 {
+                    if temp.mode == .square, let rect = temp.rect {
+                        // Draw square as rectangle
+                        path.addRect(rect)
+                    } else if temp.points.count > 1 {
+                        // Draw line for straight line and circle arc modes
                         path.move(to: temp.points[0])
                         for point in temp.points.dropFirst() {
                             path.addLine(to: point)

@@ -132,6 +132,15 @@ struct DrawingCanvasView: View {
                 temporaryShape?.points = [temporaryShape!.points[0], adjustedLocation]
             }
             
+        case .square:
+            if temporaryShape == nil {
+                // Erster Punkt (top-left)
+                temporaryShape = TemporaryShape(mode: .square, points: [adjustedLocation])
+            } else {
+                // Während des Ziehens: bottom-right Punkt aktualisieren
+                temporaryShape?.points = [temporaryShape!.points[0], adjustedLocation]
+            }
+            
         case .circleArc:
             // Wird bei Klicks behandelt, nicht bei Drag
             break
@@ -155,6 +164,36 @@ struct DrawingCanvasView: View {
                 var line = Line()
                 line.points = shape.points
                 lines.append(line)
+                temporaryShape = nil
+            }
+            
+        case .square:
+            if let shape = temporaryShape, shape.points.count == 2, let rect = shape.rect {
+                // Quadrat/Rechteck fertig - in 4 Linien umwandeln
+                var line = Line()
+                // Top edge
+                line.points.append(CGPoint(x: rect.minX, y: rect.minY))
+                line.points.append(CGPoint(x: rect.maxX, y: rect.minY))
+                lines.append(line)
+                
+                // Right edge
+                line = Line()
+                line.points.append(CGPoint(x: rect.maxX, y: rect.minY))
+                line.points.append(CGPoint(x: rect.maxX, y: rect.maxY))
+                lines.append(line)
+                
+                // Bottom edge
+                line = Line()
+                line.points.append(CGPoint(x: rect.maxX, y: rect.maxY))
+                line.points.append(CGPoint(x: rect.minX, y: rect.maxY))
+                lines.append(line)
+                
+                // Left edge
+                line = Line()
+                line.points.append(CGPoint(x: rect.minX, y: rect.maxY))
+                line.points.append(CGPoint(x: rect.minX, y: rect.minY))
+                lines.append(line)
+                
                 temporaryShape = nil
             }
             
