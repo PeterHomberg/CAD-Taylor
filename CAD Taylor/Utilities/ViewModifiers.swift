@@ -13,6 +13,8 @@ struct NotificationHandlerModifier: ViewModifier {
     @Binding var showCoordinates: Bool
     let canvasSize: CGSize
     let onExport: () -> Void
+    let onSave: () -> Void
+    let onOpen: () -> Void
     
     func body(content: Content) -> some View {
         content
@@ -21,6 +23,12 @@ struct NotificationHandlerModifier: ViewModifier {
                 currentLine = Line()
                 currentCoordinates = CGPoint.zero
                 zoomLevel = 1.0
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .saveDrawing)) { _ in
+                onSave()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openDrawing)) { _ in
+                onOpen()
             }
             .onReceive(NotificationCenter.default.publisher(for: .savePDF)) { _ in
                 onExport()
@@ -63,7 +71,9 @@ extension View {
         zoomLevel: Binding<CGFloat>,
         showCoordinates: Binding<Bool>,
         canvasSize: CGSize,
-        onExport: @escaping () -> Void
+        onExport: @escaping () -> Void,
+        onSave: @escaping () -> Void,
+        onOpen: @escaping () -> Void
     ) -> some View {
         modifier(NotificationHandlerModifier(
             lines: lines,
@@ -72,7 +82,9 @@ extension View {
             zoomLevel: zoomLevel,
             showCoordinates: showCoordinates,
             canvasSize: canvasSize,
-            onExport: onExport
+            onExport: onExport,
+            onSave: onSave,
+            onOpen: onOpen
         ))
     }
 }

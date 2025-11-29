@@ -108,7 +108,9 @@ struct DrawingCanvasView: View {
             zoomLevel: $zoomLevel,
             showCoordinates: $showCoordinates,
             canvasSize: canvasSize,
-            onExport: exportPDF
+            onExport: exportPDF,
+            onSave: saveDrawing,
+            onOpen: openDrawing
         )
     }
     
@@ -267,6 +269,23 @@ struct DrawingCanvasView: View {
     
     private func exportPDF() {
         PDFExporter.savePDFWithDialog(lines: lines, canvasSize: canvasSize)
+    }
+	private func saveDrawing() {
+        DrawingSerializer.saveDrawingWithDialog(lines: lines, canvasSize: canvasSize)
+    }
+    
+    private func openDrawing() {
+        DrawingSerializer.openDrawingWithDialog { result in
+            switch result {
+            case .success(let data):
+                lines = data.lines
+                canvasSize = data.canvasSize
+                currentLine = Line()
+                currentCoordinates = CGPoint.zero
+            case .failure(let error):
+                print("Failed to open drawing: \(error)")
+            }
+        }
     }
     
     let notificationToggleMillimeters = NotificationCenter.default
