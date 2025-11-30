@@ -16,7 +16,7 @@ struct DrawingCanvasView: View {
     @State private var selectedMode: DrawingMode = .freehand
     @State private var temporaryShape: TemporaryShape?
     @Binding var showInMillimeters: Bool
-    @Environment(\.coord) var coord
+    
     
     var body: some View {
         HStack(spacing: 0) {
@@ -96,9 +96,6 @@ struct DrawingCanvasView: View {
             
             // Right sidebar with drawing tools
             DrawingToolbar(selectedMode: $selectedMode)
-        }
-        .onReceive(notificationToggleMillimeters) { notification in
-            print("Toggle Millimeters notification received! \(notification) Toggle: \(coord)")
         }
         .frame(minWidth: 900, minHeight: 600)
         .setupNotificationHandlers(

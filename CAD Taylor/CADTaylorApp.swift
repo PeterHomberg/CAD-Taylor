@@ -9,15 +9,13 @@ import SwiftUI
 struct CADTaylorApp: App {
     //@StateObject private var windowManager = WindowManager()
     @State private var showInMillimeters = false
-    @Environment(\.coord) var coord
+    
 
     var body: some Scene {
         WindowGroup {
             DrawingCanvasView(showInMillimeters: $showInMillimeters)
             //ContentView()
                 //.environmentObject(windowManager)
-                .environment(\.coord, showInMillimeters ? .mill : .pix)
-            
         }
         .onChange(of: showInMillimeters) {_ in
             NotificationCenter.default.post(name: .notificToggleMillName, object: nil)
@@ -36,21 +34,5 @@ struct CADTaylorApp: App {
     }
 }
 
-enum Coord {
-    case mill, pix
-}
-struct CoordKey: EnvironmentKey {
-    static let defaultValue: Coord = .pix
-}
-extension EnvironmentValues {
-    var coord: Coord {
-        get {
-            self[CoordKey.self]
-        }
-        set {
-            self[CoordKey.self] = newValue
-        }
-    }
-}
 
 
