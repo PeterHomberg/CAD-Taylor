@@ -267,7 +267,7 @@ struct DrawingCanvasView: View {
     private func exportPDF() {
         PDFExporter.savePDFWithDialog(lines: lines, canvasSize: canvasSize)
     }
-	private func saveDrawing() {
+    private func saveDrawing() {
         DrawingSerializer.saveDrawingWithDialog(lines: lines, canvasSize: canvasSize)
     }
     
@@ -284,10 +284,6 @@ struct DrawingCanvasView: View {
             }
         }
     }
-    
-    let notificationToggleMillimeters = NotificationCenter.default
-        .publisher(for: .notificToggleMillName)
-        .receive(on: RunLoop.main)
 }
 
 // MARK: - Mouse Tracking View

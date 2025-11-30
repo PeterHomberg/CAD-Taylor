@@ -4,6 +4,7 @@
 // ============================================
 
 import Foundation
+
 extension Notification.Name {
     static let newDrawing = Notification.Name("newDrawing")
     static let saveDrawing = Notification.Name("saveDrawing")
@@ -15,5 +16,4 @@ extension Notification.Name {
     static let zoomIn = Notification.Name("zoomIn")
     static let zoomOut = Notification.Name("zoomOut")
     static let resetZoom = Notification.Name("resetZoom")
-    static let notificToggleMillName = Notification.Name("menuToggleMillimeters")
 }
