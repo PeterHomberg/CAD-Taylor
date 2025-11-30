@@ -1,10 +1,3 @@
-//
-//  DrawingToolbar.swift
-//  CAD Taylor
-//
-//  Created by Peter Homberg on 11/6/25.
-//
-
 // ============================================
 // File: DrawingToolbar.swift
 // Sidebar for selecting drawing tools
@@ -90,29 +83,5 @@ struct DrawingToolbar: View {
     }
 }
 
-struct ToolButton: View {
-    let title: String
-    let icon: String
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack {
-                Image(systemName: icon)
-                    .frame(width: 24)
-                Text(title)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(isSelected ? Color.blue.opacity(0.2) : Color.clear)
-            .cornerRadius(8)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2)
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-}
+// ToolButton wurde nach SharedComponents.swift verschoben
+// um Duplikation zu vermeiden

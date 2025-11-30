@@ -1,22 +1,34 @@
 // ============================================
 // File: DrawingCanvasView.swift
-// Main canvas view with drawing functionality
+// Main canvas view with drawing and selection functionality
+// Phase 1-3: Shape model, Hit-testing, Selection, Move
 // ============================================
 
 import SwiftUI
 
 struct DrawingCanvasView: View {
-    @State private var lines: [Line] = []
-    @State private var currentLine = Line()
+    // Shape-based system (replaces lines)
+    @State private var shapes: [Shape] = []
+    @State private var currentShape: Shape?
+    @State private var temporaryShape: TemporaryShape?
+    @State private var selectedShapeID: UUID?
+    
+    // Interaction modes
+    @State private var interactionMode: InteractionMode = .draw
+    @State private var editMode: EditMode = .move
+    @State private var selectedDrawingMode: DrawingMode = .freehand
+    
+    // Drag state for editing
+    @State private var dragStartPoint: CGPoint?
+    @State private var originalShape: Shape?
+    
+    // UI state
     @State private var currentCoordinates = CGPoint.zero
     @State private var canvasSize = CGSize(width: 600, height: 400)
     @State private var showCoordinates = true
     @State private var zoomLevel: CGFloat = 1.0
-    @State private var pdfURL: URL?
-    @State private var selectedMode: DrawingMode = .freehand
-    @State private var temporaryShape: TemporaryShape?
-    @Binding var showInMillimeters: Bool
     
+    @Binding var showInMillimeters: Bool
     
     var body: some View {
         HStack(spacing: 0) {
@@ -37,70 +49,153 @@ struct DrawingCanvasView: View {
                         currentCoordinates = adjustedLocation
                     }
                     
+                    // Drawing view
                     DrawingView(
-                        lines: lines,
-                        currentLine: currentLine,
+                        shapes: shapes,
+                        currentShape: currentShape,
                         temporaryShape: temporaryShape,
                         canvasSize: $canvasSize
                     )
                     .scaleEffect(zoomLevel)
+                    
+                    // Selection overlay
+                    if let selectedID = selectedShapeID,
+                       let shape = shapes.first(where: { $0.id == selectedID }) {
+                        SelectionOverlay(shape: shape)
+                            .scaleEffect(zoomLevel)
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { value in
-                            handleDrawing(at: value.location)
+                            handleGesture(location: value.location, phase: .changed)
                         }
                         .onEnded { value in
-                            handleDrawingEnd(at: value.location)
+                            handleGesture(location: value.location, phase: .ended)
                         }
                 )
                 
                 // Bottom toolbar
                 HStack {
+                    // Mode toggle buttons
+                    HStack(spacing: 8) {
+                        Button(action: { interactionMode = .draw }) {
+                            HStack {
+                                Image(systemName: "pencil")
+                                Text("Draw")
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(interactionMode == .draw ? Color.blue : Color.gray.opacity(0.3))
+                            .foregroundColor(.white)
+                            .cornerRadius(6)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        Button(action: {
+                            interactionMode = .select
+                            selectedShapeID = nil // Deselect when switching modes
+                        }) {
+                            HStack {
+                                Image(systemName: "hand.point.up.left")
+                                Text("Select")
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(interactionMode == .select ? Color.blue : Color.gray.opacity(0.3))
+                            .foregroundColor(.white)
+                            .cornerRadius(6)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    
+                    Divider()
+                        .frame(height: 30)
+                    
+                    // Actions
                     Button("Clear Canvas") {
                         clearCanvas()
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
                     .background(Color.red)
                     .foregroundColor(Color.white)
-                    .cornerRadius(8)
+                    .cornerRadius(6)
                     .buttonStyle(PlainButtonStyle())
                     
                     Button("Export PDF") {
                         exportPDF()
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
                     .background(Color.green)
                     .foregroundColor(Color.white)
-                    .cornerRadius(8)
+                    .cornerRadius(6)
                     .buttonStyle(PlainButtonStyle())
+                    
+                    // Delete button (nur wenn Shape ausgewählt)
+                    if selectedShapeID != nil {
+                        Button("Delete") {
+                            deleteSelectedShape()
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.orange)
+                        .foregroundColor(Color.white)
+                        .cornerRadius(6)
+                        .buttonStyle(PlainButtonStyle())
+                    }
                     
                     Spacer()
                     
+                    // Coordinates display
                     if showCoordinates {
                         let xFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.x, inMillimeters: showInMillimeters)
                         let yFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.y, inMillimeters: showInMillimeters)
                         let unit = CoordinateConverter.unitLabel(inMillimeters: showInMillimeters)
-                        Text("X: \(xFormatted) \(unit), Y: \(yFormatted) \(unit) | Zoom: \(Int(zoomLevel * 100))%")
-                            .font(.system(size: 16, design: .monospaced))
-                            .padding()
-                            .background(Color.gray.opacity(0.1))
-                            .cornerRadius(8)
+                        
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("X: \(xFormatted) \(unit), Y: \(yFormatted) \(unit) | Zoom: \(Int(zoomLevel * 100))%")
+                                .font(.system(size: 14, design: .monospaced))
+                            
+                            if let selectedID = selectedShapeID,
+                               let shape = shapes.first(where: { $0.id == selectedID }) {
+                                Text("Selected: \(shape.type.displayName)")
+                                    .font(.system(size: 12, design: .monospaced))
+                                    .foregroundColor(.blue)
+                            } else if interactionMode == .select {
+                                Text("Click to select a shape")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        .padding(8)
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(6)
                     }
                 }
             }
             .padding()
             
             // Right sidebar with drawing tools
-            DrawingToolbar(selectedMode: $selectedMode)
+            if interactionMode == .draw {
+                DrawingToolbar(selectedMode: $selectedDrawingMode)
+            } else {
+                EditToolbar(
+                    editMode: $editMode,
+                    hasSelection: selectedShapeID != nil
+                )
+            }
         }
         .frame(minWidth: 900, minHeight: 600)
+        .onAppear {
+            // Migration: convert any existing lines to shapes
+            // This would be needed if you have old data
+        }
         .setupNotificationHandlers(
-            lines: $lines,
-            currentLine: $currentLine,
+            shapes: $shapes,
+            currentShape: $currentShape,
             currentCoordinates: $currentCoordinates,
             zoomLevel: $zoomLevel,
             showCoordinates: $showCoordinates,
@@ -111,118 +206,120 @@ struct DrawingCanvasView: View {
         )
     }
     
-    private func handleDrawing(at location: CGPoint) {
+    // MARK: - Gesture Handling
+    
+    enum GesturePhase {
+        case changed, ended
+    }
+    
+    private func handleGesture(location: CGPoint, phase: GesturePhase) {
         let adjustedLocation = CGPoint(
             x: location.x / zoomLevel,
             y: location.y / zoomLevel
         )
-        currentCoordinates = adjustedLocation
         
-        switch selectedMode {
+        switch interactionMode {
+        case .draw:
+            if phase == .changed {
+                handleDrawing(at: adjustedLocation)
+            } else {
+                handleDrawingEnd(at: adjustedLocation)
+            }
+            
+        case .select:
+            if phase == .changed {
+                handleSelection(at: adjustedLocation)
+            } else {
+                handleSelectionEnd(at: adjustedLocation)
+            }
+        }
+    }
+    
+    // MARK: - Drawing Mode Logic
+    
+    private func handleDrawing(at location: CGPoint) {
+        currentCoordinates = location
+        
+        switch selectedDrawingMode {
         case .freehand:
-            currentLine.points.append(adjustedLocation)
+            if currentShape == nil {
+                currentShape = Shape(type: .freehand)
+            }
+            currentShape?.points.append(location)
             
         case .straightLine:
             if temporaryShape == nil {
-                // Erster Punkt
-                temporaryShape = TemporaryShape(mode: .straightLine, points: [adjustedLocation])
+                temporaryShape = TemporaryShape(mode: .straightLine, points: [location])
             } else {
-                // Während des Ziehens: Endpunkt aktualisieren
-                temporaryShape?.points = [temporaryShape!.points[0], adjustedLocation]
+                temporaryShape?.points = [temporaryShape!.points[0], location]
             }
             
         case .square:
             if temporaryShape == nil {
-                // Erster Punkt (top-left)
-                temporaryShape = TemporaryShape(mode: .square, points: [adjustedLocation])
+                temporaryShape = TemporaryShape(mode: .square, points: [location])
             } else {
-                // Während des Ziehens: bottom-right Punkt aktualisieren
-                temporaryShape?.points = [temporaryShape!.points[0], adjustedLocation]
+                temporaryShape?.points = [temporaryShape!.points[0], location]
             }
             
         case .circleArc:
-            // Wird bei Klicks behandelt, nicht bei Drag
             break
         }
     }
     
     private func handleDrawingEnd(at location: CGPoint) {
-        let adjustedLocation = CGPoint(
-            x: location.x / zoomLevel,
-            y: location.y / zoomLevel
-        )
-        
-        switch selectedMode {
+        switch selectedDrawingMode {
         case .freehand:
-            lines.append(currentLine)
-            currentLine = Line()
+            if let shape = currentShape, !shape.points.isEmpty {
+                shapes.append(shape)
+            }
+            currentShape = nil
             
         case .straightLine:
-            if let shape = temporaryShape, shape.points.count == 2 {
-                // Gerade Linie fertig
-                var line = Line()
-                line.points = shape.points
-                lines.append(line)
+            if let temp = temporaryShape, temp.points.count == 2 {
+                var shape = Shape(type: .straightLine)
+                shape.points = temp.points
+                shapes.append(shape)
                 temporaryShape = nil
             }
             
         case .square:
-            if let shape = temporaryShape, shape.points.count == 2, let rect = shape.rect {
-                // Quadrat/Rechteck fertig - in 4 Linien umwandeln
-                var line = Line()
-                // Top edge
-                line.points.append(CGPoint(x: rect.minX, y: rect.minY))
-                line.points.append(CGPoint(x: rect.maxX, y: rect.minY))
-                lines.append(line)
-                
-                // Right edge
-                line = Line()
-                line.points.append(CGPoint(x: rect.maxX, y: rect.minY))
-                line.points.append(CGPoint(x: rect.maxX, y: rect.maxY))
-                lines.append(line)
-                
-                // Bottom edge
-                line = Line()
-                line.points.append(CGPoint(x: rect.maxX, y: rect.maxY))
-                line.points.append(CGPoint(x: rect.minX, y: rect.maxY))
-                lines.append(line)
-                
-                // Left edge
-                line = Line()
-                line.points.append(CGPoint(x: rect.minX, y: rect.maxY))
-                line.points.append(CGPoint(x: rect.minX, y: rect.minY))
-                lines.append(line)
-                
+            if let temp = temporaryShape, temp.points.count == 2, let rect = temp.rect {
+                var shape = Shape(type: .rectangle)
+                // 4 Eckpunkte im Uhrzeigersinn
+                shape.points = [
+                    CGPoint(x: rect.minX, y: rect.minY),
+                    CGPoint(x: rect.maxX, y: rect.minY),
+                    CGPoint(x: rect.maxX, y: rect.maxY),
+                    CGPoint(x: rect.minX, y: rect.maxY)
+                ]
+                shapes.append(shape)
                 temporaryShape = nil
             }
             
         case .circleArc:
             if temporaryShape == nil {
-                temporaryShape = TemporaryShape(mode: .circleArc, points: [adjustedLocation])
+                temporaryShape = TemporaryShape(mode: .circleArc, points: [location])
             } else if temporaryShape!.points.count == 1 {
-                temporaryShape?.points.append(adjustedLocation)
+                temporaryShape?.points.append(location)
             } else if temporaryShape!.points.count == 2 {
-                temporaryShape?.points.append(adjustedLocation)
-                // Kreisbogen berechnen
+                temporaryShape?.points.append(location)
                 if let arc = calculateCircleArc(points: temporaryShape!.points) {
-                    lines.append(arc)
+                    shapes.append(arc)
                 }
                 temporaryShape = nil
             }
         }
     }
     
-    private func calculateCircleArc(points: [CGPoint]) -> Line? {
+    private func calculateCircleArc(points: [CGPoint]) -> Shape? {
         guard points.count == 3 else { return nil }
         
         let p1 = points[0]
         let p2 = points[1]
         let p3 = points[2]
         
-        // Kreismittelpunkt berechnen
         let d = 2 * (p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y))
-        
-        guard abs(d) > 0.001 else { return nil } // Punkte sind kollinear
+        guard abs(d) > 0.001 else { return nil }
         
         let ux = ((p1.x * p1.x + p1.y * p1.y) * (p2.y - p3.y) +
                   (p2.x * p2.x + p2.y * p2.y) * (p3.y - p1.y) +
@@ -235,12 +332,9 @@ struct DrawingCanvasView: View {
         let center = CGPoint(x: ux, y: uy)
         let radius = sqrt(pow(p1.x - center.x, 2) + pow(p1.y - center.y, 2))
         
-        // Winkel berechnen
         let angle1 = atan2(p1.y - center.y, p1.x - center.x)
-        let angle2 = atan2(p2.y - center.y, p2.x - center.x)
         let angle3 = atan2(p3.y - center.y, p3.x - center.x)
         
-        // Bogen in Punkte umwandeln
         var arcPoints: [CGPoint] = []
         let segments = 50
         
@@ -252,22 +346,87 @@ struct DrawingCanvasView: View {
             arcPoints.append(CGPoint(x: x, y: y))
         }
         
-        var line = Line()
-        line.points = arcPoints
-        return line
+        var shape = Shape(type: .circleArc)
+        shape.points = arcPoints
+        return shape
     }
     
+    // MARK: - Selection Mode Logic (Phase 2 & 3)
+    
+    private func handleSelection(at location: CGPoint) {
+        currentCoordinates = location
+        
+        if dragStartPoint == nil {
+            // Erster Klick: Shape suchen und auswählen
+            if let foundShape = HitTesting.findShape(at: location, in: shapes) {
+                selectedShapeID = foundShape.id
+                dragStartPoint = location
+                
+                // Original Shape für Undo speichern
+                if let index = shapes.firstIndex(where: { $0.id == foundShape.id }) {
+                    originalShape = shapes[index]
+                }
+            } else {
+                // Klick ins Leere: Deselect
+                selectedShapeID = nil
+            }
+        } else {
+            // Drag: Shape bewegen (Phase 3 - Move)
+            handleShapeMove(to: location)
+        }
+    }
+    
+    private func handleSelectionEnd(at location: CGPoint) {
+        dragStartPoint = nil
+        originalShape = nil
+    }
+    
+    private func handleShapeMove(to location: CGPoint) {
+        guard let shapeID = selectedShapeID,
+              let index = shapes.firstIndex(where: { $0.id == shapeID }),
+              let startPoint = dragStartPoint,
+              let original = originalShape else { return }
+        
+        let delta = CGPoint(
+            x: location.x - startPoint.x,
+            y: location.y - startPoint.y
+        )
+        
+        // Alle Punkte des Shapes verschieben
+        shapes[index].points = original.points.map { point in
+            CGPoint(x: point.x + delta.x, y: point.y + delta.y)
+        }
+    }
+    
+    private func deleteSelectedShape() {
+        guard let shapeID = selectedShapeID else { return }
+        shapes.removeAll { $0.id == shapeID }
+        selectedShapeID = nil
+    }
+    
+    // MARK: - Canvas Actions
+    
     private func clearCanvas() {
-        lines.removeAll()
-        currentLine = Line()
+        shapes.removeAll()
+        currentShape = nil
         temporaryShape = nil
+        selectedShapeID = nil
         currentCoordinates = CGPoint.zero
     }
     
     private func exportPDF() {
+        // Convert shapes back to lines for PDF export
+        let lines = shapes.map { shape in
+            Line(points: shape.points, color: shape.color, width: shape.width)
+        }
         PDFExporter.savePDFWithDialog(lines: lines, canvasSize: canvasSize)
     }
+    
     private func saveDrawing() {
+        // TODO: Update to save shapes instead of lines
+        let lines = shapes.map { shape in
+            Line(points: shape.points, color: shape.color, width: shape.width)
+        }
         DrawingSerializer.saveDrawingWithDialog(lines: lines, canvasSize: canvasSize)
     }
     
@@ -275,13 +434,29 @@ struct DrawingCanvasView: View {
         DrawingSerializer.openDrawingWithDialog { result in
             switch result {
             case .success(let data):
-                lines = data.lines
+                // Convert loaded lines to shapes
+                shapes = data.lines.map { line in
+                    Shape(from: line, type: .freehand)
+                }
                 canvasSize = data.canvasSize
-                currentLine = Line()
+                currentShape = nil
                 currentCoordinates = CGPoint.zero
+                selectedShapeID = nil
             case .failure(let error):
                 print("Failed to open drawing: \(error)")
             }
+        }
+    }
+}
+
+// MARK: - Shape Type Extension
+extension ShapeType {
+    var displayName: String {
+        switch self {
+        case .freehand: return "Freehand"
+        case .straightLine: return "Straight Line"
+        case .rectangle: return "Rectangle"
+        case .circleArc: return "Circle Arc"
         }
     }
 }
@@ -334,8 +509,6 @@ class MouseTrackingNSView: NSView {
     
     override func mouseMoved(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
-        // NSView hat Ursprung unten links, SwiftUI hat Ursprung oben links
-        // Daher Y-Koordinate umrechnen
         let flippedLocation = CGPoint(x: location.x, y: bounds.height - location.y)
         onMouseMoved?(flippedLocation)
     }

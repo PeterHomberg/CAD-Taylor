@@ -1,13 +1,14 @@
 // ============================================
 // File: ViewModifiers.swift
 // Custom view modifiers for notification handling
+// Updated for shape-based system
 // ============================================
 
 import SwiftUI
 
 struct NotificationHandlerModifier: ViewModifier {
-    @Binding var lines: [Line]
-    @Binding var currentLine: Line
+    @Binding var shapes: [Shape]
+    @Binding var currentShape: Shape?
     @Binding var currentCoordinates: CGPoint
     @Binding var zoomLevel: CGFloat
     @Binding var showCoordinates: Bool
@@ -19,8 +20,8 @@ struct NotificationHandlerModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .onReceive(NotificationCenter.default.publisher(for: .newDrawing)) { _ in
-                lines.removeAll()
-                currentLine = Line()
+                shapes.removeAll()
+                currentShape = nil
                 currentCoordinates = CGPoint.zero
                 zoomLevel = 1.0
             }
@@ -34,23 +35,18 @@ struct NotificationHandlerModifier: ViewModifier {
                 onExport()
             }
             .onReceive(NotificationCenter.default.publisher(for: .clearCanvas)) { _ in
-                lines.removeAll()
-                currentLine = Line()
+                shapes.removeAll()
+                currentShape = nil
                 currentCoordinates = CGPoint.zero
             }
             .onReceive(NotificationCenter.default.publisher(for: .undoDrawing)) { _ in
-                if !lines.isEmpty {
-                    lines.removeLast()
+                if !shapes.isEmpty {
+                    shapes.removeLast()
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .toggleCoordinates)) { _ in
                 showCoordinates.toggle()
             }
-        /*
-            .onReceive(NotificationCenter.default.publisher(for: .toggleMillimeters)) {  notification in
-                print("Toggle Millimeters notification received! \(notification) Toggle: \(coord)")
-            }
-         */
             .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { _ in
                 zoomLevel = min(zoomLevel + 0.25, 3.0)
             }
@@ -65,8 +61,8 @@ struct NotificationHandlerModifier: ViewModifier {
 
 extension View {
     func setupNotificationHandlers(
-        lines: Binding<[Line]>,
-        currentLine: Binding<Line>,
+        shapes: Binding<[Shape]>,
+        currentShape: Binding<Shape?>,
         currentCoordinates: Binding<CGPoint>,
         zoomLevel: Binding<CGFloat>,
         showCoordinates: Binding<Bool>,
@@ -76,8 +72,8 @@ extension View {
         onOpen: @escaping () -> Void
     ) -> some View {
         modifier(NotificationHandlerModifier(
-            lines: lines,
-            currentLine: currentLine,
+            shapes: shapes,
+            currentShape: currentShape,
             currentCoordinates: currentCoordinates,
             zoomLevel: zoomLevel,
             showCoordinates: showCoordinates,
@@ -86,11 +82,5 @@ extension View {
             onSave: onSave,
             onOpen: onOpen
         ))
-    }
-}
-
-struct Previews_ViewModifiers_Previews: PreviewProvider {
-    static var previews: some View {
-        /*@START_MENU_TOKEN@*/Text("Hello, World!")/*@END_MENU_TOKEN@*/
     }
 }
