@@ -27,36 +27,34 @@ struct SelectionOverlay: View {
     // MARK: - Subviews
     
     private var boundingBoxView: some View {
-        Rectangle()
+        let box = shape.boundingBox
+        return Rectangle()
             .stroke(Color.blue, style: StrokeStyle(lineWidth: 2, dash: [5, 3]))
-            .frame(
-                width: shape.boundingBox.width,
-                height: shape.boundingBox.height
-            )
-            .position(
-                x: shape.boundingBox.midX,
-                y: shape.boundingBox.midY
-            )
+            .frame(width: box.width, height: box.height)
+            .position(x: box.midX, y: box.midY)
     }
     
     private var resizeHandlesView: some View {
         ForEach(Array(handlePositions.enumerated()), id: \.offset) { index, position in
-            Circle()
-                .fill(Color.white)
-                .stroke(Color.blue, lineWidth: 2)
-                .frame(width: 10, height: 10)
-                .position(position)
+            handleCircle(at: position, color: .blue)
         }
     }
     
     private var editPointsView: some View {
         ForEach(Array(shape.points.enumerated()), id: \.offset) { index, point in
-            Circle()
-                .fill(Color.orange)
-                .stroke(Color.white, lineWidth: 1)
-                .frame(width: 8, height: 8)
-                .position(point)
+            handleCircle(at: point, color: .orange)
         }
+    }
+    
+    private func handleCircle(at position: CGPoint, color: Color) -> some View {
+        Circle()
+            .fill(Color.white)
+            .overlay(
+                Circle()
+                    .stroke(color, lineWidth: 2)
+            )
+            .frame(width: 10, height: 10)
+            .position(position)
     }
     
     // MARK: - Handle Positions
@@ -66,7 +64,7 @@ struct SelectionOverlay: View {
         
         switch shape.type {
         case .rectangle:
-            // 4 Eckpunkte + 4 Mittelpunkte = 8 Handles
+            // 4 Eckpunkte + 4 Mittenpunkte = 8 Handles
             return [
                 CGPoint(x: box.minX, y: box.minY),  // Top-left
                 CGPoint(x: box.maxX, y: box.minY),  // Top-right
