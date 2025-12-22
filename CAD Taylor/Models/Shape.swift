@@ -23,7 +23,7 @@ struct Shape: Identifiable, Codable {
     
     // Bounding Box für Hit-Testing
     var boundingBox: CGRect {
-        guard !points.isEmpty else { return .zero }
+        guard !points.isEmpty else { return CGRect.zero }
         let xs = points.map { $0.x }
         let ys = points.map { $0.y }
         let minX = xs.min()!

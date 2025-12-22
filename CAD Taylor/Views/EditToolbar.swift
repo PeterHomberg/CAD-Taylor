@@ -41,9 +41,8 @@ struct EditToolbar: View {
                     ) {
                         editMode = .resize
                     }
-                    .opacity(0.5) // Disabled for now
                     
-                    Text("Coming in Phase 4")
+                    Text("Drag handles to resize")
                         .font(.caption)
                         .foregroundColor(.gray)
                         .padding(.leading, 8)

@@ -21,6 +21,7 @@ struct DrawingCanvasView: View {
     // Drag state for editing
     @State private var dragStartPoint: CGPoint?
     @State private var originalShape: Shape?
+    @State private var activeResizeHandle: ResizeHandle?
     
     // UI state
     @State private var currentCoordinates = CGPoint.zero
@@ -351,13 +352,30 @@ struct DrawingCanvasView: View {
         return shape
     }
     
-    // MARK: - Selection Mode Logic (Phase 2 & 3)
+    // MARK: - Selection Mode Logic (Phase 2, 3 & 4)
     
     private func handleSelection(at location: CGPoint) {
         currentCoordinates = location
         
         if dragStartPoint == nil {
-            // Erster Klick: Shape suchen und auswählen
+            // Erster Klick: Prüfe ob ein Handle geklickt wurde (Phase 4)
+            if editMode == .resize,
+               let shapeID = selectedShapeID,
+               let shape = shapes.first(where: { $0.id == shapeID }) {
+                
+                // Versuche einen Resize-Handle zu finden
+                if let handle = ResizeHandle.findHandle(at: location, for: shape) {
+                    activeResizeHandle = handle
+                    dragStartPoint = location
+                    
+                    if let index = shapes.firstIndex(where: { $0.id == shapeID }) {
+                        originalShape = shapes[index]
+                    }
+                    return
+                }
+            }
+            
+            // Kein Handle: Shape suchen und auswählen
             if let foundShape = HitTesting.findShape(at: location, in: shapes) {
                 selectedShapeID = foundShape.id
                 dragStartPoint = location
@@ -371,14 +389,19 @@ struct DrawingCanvasView: View {
                 selectedShapeID = nil
             }
         } else {
-            // Drag: Shape bewegen (Phase 3 - Move)
-            handleShapeMove(to: location)
+            // Drag: Shape bearbeiten
+            if activeResizeHandle != nil {
+                handleShapeResize(to: location)
+            } else if editMode == .move {
+                handleShapeMove(to: location)
+            }
         }
     }
     
     private func handleSelectionEnd(at location: CGPoint) {
         dragStartPoint = nil
         originalShape = nil
+        activeResizeHandle = nil
     }
     
     private func handleShapeMove(to location: CGPoint) {
@@ -396,6 +419,21 @@ struct DrawingCanvasView: View {
         shapes[index].points = original.points.map { point in
             CGPoint(x: point.x + delta.x, y: point.y + delta.y)
         }
+    }
+    
+    private func handleShapeResize(to location: CGPoint) {
+        guard let shapeID = selectedShapeID,
+              let index = shapes.firstIndex(where: { $0.id == shapeID }),
+              let handle = activeResizeHandle,
+              let original = originalShape else { return }
+        
+        // Nutze ShapeResizer für die Resize-Logik
+        shapes[index] = ShapeResizer.resize(
+            shape: shapes[index],
+            handle: handle,
+            newPosition: location,
+            originalShape: original
+        )
     }
     
     private func deleteSelectedShape() {

@@ -36,24 +36,24 @@ struct SelectionOverlay: View {
     
     private var resizeHandlesView: some View {
         ForEach(Array(handlePositions.enumerated()), id: \.offset) { index, position in
-            handleCircle(at: position, color: .blue)
+            handleCircle(at: position, color: .blue, size: 10)
         }
     }
     
     private var editPointsView: some View {
         ForEach(Array(shape.points.enumerated()), id: \.offset) { index, point in
-            handleCircle(at: point, color: .orange)
+            handleCircle(at: point, color: .orange, size: 8)
         }
     }
     
-    private func handleCircle(at position: CGPoint, color: Color) -> some View {
+    private func handleCircle(at position: CGPoint, color: Color, size: CGFloat) -> some View {
         Circle()
             .fill(Color.white)
             .overlay(
                 Circle()
                     .stroke(color, lineWidth: 2)
             )
-            .frame(width: 10, height: 10)
+            .frame(width: size, height: size)
             .position(position)
     }
     
