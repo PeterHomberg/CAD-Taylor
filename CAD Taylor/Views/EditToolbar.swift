@@ -1,13 +1,24 @@
 // ============================================
 // File: EditToolbar.swift
 // Sidebar for editing selected shapes
+// NOW WITH: Coordinate input for selected rectangles
 // ============================================
 
 import SwiftUI
 
 struct EditToolbar: View {
     @Binding var editMode: EditMode
+    @Binding var shapes: [Shape]
+    @Binding var selectedShapeID: UUID?
+    @Binding var showInMillimeters: Bool
+    
     let hasSelection: Bool
+    
+    // Computed: aktuell ausgewähltes Shape
+    private var selectedShape: Shape? {
+        guard let id = selectedShapeID else { return nil }
+        return shapes.first(where: { $0.id == id })
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -33,7 +44,7 @@ struct EditToolbar: View {
                     
                     Divider()
                     
-                    // Resize (coming in Phase 4)
+                    // Resize
                     ToolButton(
                         title: "Resize",
                         icon: "arrow.up.left.and.arrow.down.right",
@@ -63,6 +74,50 @@ struct EditToolbar: View {
                         .font(.caption)
                         .foregroundColor(.gray)
                         .padding(.leading, 8)
+                }
+                
+                Divider()
+                    .padding(.vertical, 8)
+                
+                // Coordinate input for selected rectangle (NEW!)
+                if let shape = selectedShape, shape.type == .rectangle {
+                    CoordinateInputSection(
+                        shape: shape,
+                        showInMillimeters: showInMillimeters,
+                        onUpdate: { updatedShape in
+                            updateShape(updatedShape)
+                        }
+                    )
+                } else if let shape = selectedShape {
+                    // Info für andere Shape-Types
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.blue)
+                            Text("Selected Shape")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                        }
+                        
+                        Text("Type: \(shape.type.displayName)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        if shape.type == .straightLine {
+                            Text("Coordinate editing for lines coming soon")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .padding(.top, 4)
+                        } else if shape.type == .circleArc {
+                            Text("Coordinate editing for arcs coming soon")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .padding(.top, 4)
+                        }
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.05))
+                    .cornerRadius(8)
                 }
             } else {
                 VStack(alignment: .leading, spacing: 10) {
@@ -116,8 +171,14 @@ struct EditToolbar: View {
             .padding(.top, 20)
         }
         .padding()
-        .frame(width: 220)
+        .frame(width: 280)
         .background(Color.gray.opacity(0.1))
+    }
+    
+    private func updateShape(_ updatedShape: Shape) {
+        if let index = shapes.firstIndex(where: { $0.id == updatedShape.id }) {
+            shapes[index] = updatedShape
+        }
     }
 }
 

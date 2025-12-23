@@ -212,6 +212,9 @@ struct DrawingCanvasView: View {
             } else {
                 EditToolbar(
                     editMode: $editMode,
+                    shapes: $shapes,
+                    selectedShapeID: $selectedShapeID,
+                    showInMillimeters: $showInMillimeters,
                     hasSelection: selectedShapeID != nil
                 )
             }
