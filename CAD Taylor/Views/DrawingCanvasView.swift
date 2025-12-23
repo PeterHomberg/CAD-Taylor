@@ -1,7 +1,7 @@
 // ============================================
 // File: DrawingCanvasView.swift
 // Main canvas view with drawing and selection functionality
-// Phase 1-3: Shape model, Hit-testing, Selection, Move
+// FIXED: Zoom now respects canvas boundaries and hit-test works correctly
 // ============================================
 
 import SwiftUI
@@ -35,47 +35,70 @@ struct DrawingCanvasView: View {
         HStack(spacing: 0) {
             // Main canvas area
             VStack {
-                // Drawing canvas
-                ZStack {
-                    Rectangle()
-                        .fill(Color.white)
-                        .border(Color.gray, width: 1)
-                    
-                    // Mouse tracking overlay
-                    MouseTrackingView { location in
-                        let adjustedLocation = CGPoint(
-                            x: location.x / zoomLevel,
-                            y: location.y / zoomLevel
+                // Drawing canvas with GeometryReader for proper zoom handling
+                GeometryReader { geometry in
+                    ZStack {
+                        Rectangle()
+                            .fill(Color.white)
+                            .border(Color.gray, width: 1)
+                        
+                        // Mouse tracking overlay
+                        MouseTrackingView { location in
+                            // Transform mouse coordinates for zoom
+                            let canvasCenter = CGPoint(
+                                x: geometry.size.width / 2,
+                                y: geometry.size.height / 2
+                            )
+                            
+                            let offsetFromCenter = CGPoint(
+                                x: location.x - canvasCenter.x,
+                                y: location.y - canvasCenter.y
+                            )
+                            
+                            let adjustedLocation = CGPoint(
+                                x: (offsetFromCenter.x / zoomLevel) + canvasCenter.x,
+                                y: (offsetFromCenter.y / zoomLevel) + canvasCenter.y
+                            )
+                            currentCoordinates = adjustedLocation
+                        }
+                        
+                        // Drawing view
+                        DrawingView(
+                            shapes: shapes,
+                            currentShape: currentShape,
+                            temporaryShape: temporaryShape,
+                            canvasSize: $canvasSize
                         )
-                        currentCoordinates = adjustedLocation
+                        .scaleEffect(zoomLevel)
+                        
+                        // Selection overlay
+                        if let selectedID = selectedShapeID,
+                           let shape = shapes.first(where: { $0.id == selectedID }) {
+                            SelectionOverlay(shape: shape)
+                                .scaleEffect(zoomLevel)
+                        }
                     }
-                    
-                    // Drawing view
-                    DrawingView(
-                        shapes: shapes,
-                        currentShape: currentShape,
-                        temporaryShape: temporaryShape,
-                        canvasSize: $canvasSize
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .clipped() // KRITISCH: Verhindert Zeichnen über Canvas-Grenzen hinaus
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                handleGesture(
+                                    location: value.location,
+                                    phase: .changed,
+                                    canvasSize: geometry.size
+                                )
+                            }
+                            .onEnded { value in
+                                handleGesture(
+                                    location: value.location,
+                                    phase: .ended,
+                                    canvasSize: geometry.size
+                                )
+                            }
                     )
-                    .scaleEffect(zoomLevel)
-                    
-                    // Selection overlay
-                    if let selectedID = selectedShapeID,
-                       let shape = shapes.first(where: { $0.id == selectedID }) {
-                        SelectionOverlay(shape: shape)
-                            .scaleEffect(zoomLevel)
-                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            handleGesture(location: value.location, phase: .changed)
-                        }
-                        .onEnded { value in
-                            handleGesture(location: value.location, phase: .ended)
-                        }
-                )
                 
                 // Bottom toolbar
                 HStack {
@@ -213,10 +236,21 @@ struct DrawingCanvasView: View {
         case changed, ended
     }
     
-    private func handleGesture(location: CGPoint, phase: GesturePhase) {
+    private func handleGesture(location: CGPoint, phase: GesturePhase, canvasSize: CGSize) {
+        // KRITISCH: Korrekte Koordinaten-Transformation für Zoom
+        let canvasCenter = CGPoint(
+            x: canvasSize.width / 2,
+            y: canvasSize.height / 2
+        )
+        
+        let offsetFromCenter = CGPoint(
+            x: location.x - canvasCenter.x,
+            y: location.y - canvasCenter.y
+        )
+        
         let adjustedLocation = CGPoint(
-            x: location.x / zoomLevel,
-            y: location.y / zoomLevel
+            x: (offsetFromCenter.x / zoomLevel) + canvasCenter.x,
+            y: (offsetFromCenter.y / zoomLevel) + canvasCenter.y
         )
         
         switch interactionMode {
