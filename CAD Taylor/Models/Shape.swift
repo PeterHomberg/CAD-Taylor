@@ -41,6 +41,23 @@ struct Shape: Identifiable, Codable {
         )
     }
     
+    // Spezifische Eckpunkte für Rechteck (4 Punkte)
+    var cornerPoints: [NamedPoint]? {
+        guard type == .rectangle, points.count == 4 else { return nil }
+        return [
+            NamedPoint(name: "Top-Left", point: points[0]),
+            NamedPoint(name: "Top-Right", point: points[1]),
+            NamedPoint(name: "Bottom-Right", point: points[2]),
+            NamedPoint(name: "Bottom-Left", point: points[3])
+        ]
+    }
+    
+    // Update Eckpunkte
+    mutating func updateCornerPoints(_ namedPoints: [NamedPoint]) {
+        guard type == .rectangle, namedPoints.count == 4 else { return }
+        self.points = namedPoints.map { $0.point }
+    }
+    
     // Initialisierung von Line (für Migration)
     init(from line: Line, type: ShapeType) {
         self.type = type
@@ -56,6 +73,13 @@ struct Shape: Identifiable, Codable {
         self.color = color
         self.width = width
     }
+}
+
+// MARK: - Named Point (für Koordinatentabelle)
+struct NamedPoint: Identifiable {
+    let id = UUID()
+    let name: String
+    var point: CGPoint
 }
 
 // Codable extensions für CGPoint

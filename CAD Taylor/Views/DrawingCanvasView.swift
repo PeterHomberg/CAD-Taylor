@@ -204,7 +204,11 @@ struct DrawingCanvasView: View {
             
             // Right sidebar with drawing tools
             if interactionMode == .draw {
-                DrawingToolbar(selectedMode: $selectedDrawingMode)
+                DrawingToolbar(
+                    selectedMode: $selectedDrawingMode,
+                    shapes: $shapes,
+                    showInMillimeters: $showInMillimeters
+                )
             } else {
                 EditToolbar(
                     editMode: $editMode,
