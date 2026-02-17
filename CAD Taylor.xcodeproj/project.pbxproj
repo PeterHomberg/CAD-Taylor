@@ -15,9 +15,14 @@
 		FB6E2C312EDBE27E00E8EF11 /* HitTesting.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB6E2C302EDBE27E00E8EF11 /* HitTesting.swift */; };
 		FB6E2C352EDBE2F600E8EF11 /* EditToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB6E2C342EDBE2F600E8EF11 /* EditToolbar.swift */; };
 		FB6E2C392EDBE8BD00E8EF11 /* SharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB6E2C382EDBE8BD00E8EF11 /* SharedComponents.swift */; };
+		FB7C43E42EFBC012006ED97A /* INSTALLATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = FB7C43E02EFBC011006ED97A /* INSTALLATION_GUIDE.md */; };
+		FB7C43E52EFBC012006ED97A /* FIX_RECTANGLE_CLOSING.md in Resources */ = {isa = PBXBuildFile; fileRef = FB7C43E12EFBC011006ED97A /* FIX_RECTANGLE_CLOSING.md */; };
+		FB7C43E62EFBC012006ED97A /* VISUAL_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = FB7C43E22EFBC012006ED97A /* VISUAL_GUIDE.md */; };
+		FB7C43E72EFBC012006ED97A /* UPDATE_SELECT_MODE.md in Resources */ = {isa = PBXBuildFile; fileRef = FB7C43E32EFBC012006ED97A /* UPDATE_SELECT_MODE.md */; };
 		FB9900012EF90516007D4364 /* ShapeResizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB9900002EF90516007D4364 /* ShapeResizer.swift */; };
 		FB99FFFD2EF8FCE8007D4364 /* ResizeHandle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB99FFFC2EF8FCE8007D4364 /* ResizeHandle.swift */; };
 		FB99FFFF2EF8FD30007D4364 /* SelectionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB99FFFE2EF8FD30007D4364 /* SelectionOverlay.swift */; };
+		FBB6E1D92F4455A500FD8603 /* PDFContextTopLeft.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBB6E1D82F4455A500FD8603 /* PDFContextTopLeft.swift */; };
 		FBBB353C2EBC3F720067C79C /* DrawingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBBB353B2EBC3F720067C79C /* DrawingMode.swift */; };
 		FBBB353E2EBC3FB60067C79C /* DrawingToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBBB353D2EBC3FB60067C79C /* DrawingToolbar.swift */; };
 		FBE90E3C2E2B7E2E00C0CCC3 /* CADTaylorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE90E3B2E2B7E2E00C0CCC3 /* CADTaylorApp.swift */; };
@@ -42,9 +47,14 @@
 		FB6E2C302EDBE27E00E8EF11 /* HitTesting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HitTesting.swift; sourceTree = "<group>"; };
 		FB6E2C342EDBE2F600E8EF11 /* EditToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditToolbar.swift; sourceTree = "<group>"; };
 		FB6E2C382EDBE8BD00E8EF11 /* SharedComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedComponents.swift; sourceTree = "<group>"; };
+		FB7C43E02EFBC011006ED97A /* INSTALLATION_GUIDE.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = INSTALLATION_GUIDE.md; sourceTree = "<group>"; };
+		FB7C43E12EFBC011006ED97A /* FIX_RECTANGLE_CLOSING.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = FIX_RECTANGLE_CLOSING.md; sourceTree = "<group>"; };
+		FB7C43E22EFBC012006ED97A /* VISUAL_GUIDE.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = VISUAL_GUIDE.md; sourceTree = "<group>"; };
+		FB7C43E32EFBC012006ED97A /* UPDATE_SELECT_MODE.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = UPDATE_SELECT_MODE.md; sourceTree = "<group>"; };
 		FB9900002EF90516007D4364 /* ShapeResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeResizer.swift; sourceTree = "<group>"; };
 		FB99FFFC2EF8FCE8007D4364 /* ResizeHandle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResizeHandle.swift; sourceTree = "<group>"; };
 		FB99FFFE2EF8FD30007D4364 /* SelectionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionOverlay.swift; sourceTree = "<group>"; };
+		FBB6E1D82F4455A500FD8603 /* PDFContextTopLeft.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = PDFContextTopLeft.swift; path = ../../SwiftUI/LearnSwiftUI/CoreGraphicsLearning/CoreGraphicsLearning/Helpers/PDFContextTopLeft.swift; sourceTree = "<group>"; };
 		FBBB353B2EBC3F720067C79C /* DrawingMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingMode.swift; sourceTree = "<group>"; };
 		FBBB353D2EBC3FB60067C79C /* DrawingToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingToolbar.swift; sourceTree = "<group>"; };
 		FBE90E382E2B7E2E00C0CCC3 /* CAD Taylor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CAD Taylor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -76,6 +86,11 @@
 		FBE90E2F2E2B7E2E00C0CCC3 = {
 			isa = PBXGroup;
 			children = (
+				FBB6E1D82F4455A500FD8603 /* PDFContextTopLeft.swift */,
+				FB7C43E12EFBC011006ED97A /* FIX_RECTANGLE_CLOSING.md */,
+				FB7C43E02EFBC011006ED97A /* INSTALLATION_GUIDE.md */,
+				FB7C43E32EFBC012006ED97A /* UPDATE_SELECT_MODE.md */,
+				FB7C43E22EFBC012006ED97A /* VISUAL_GUIDE.md */,
 				FBE90E3A2E2B7E2E00C0CCC3 /* CAD Taylor */,
 				FBE90E392E2B7E2E00C0CCC3 /* Products */,
 			);
@@ -219,8 +234,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FB7C43E52EFBC012006ED97A /* FIX_RECTANGLE_CLOSING.md in Resources */,
 				FBE90E432E2B7E3000C0CCC3 /* Preview Assets.xcassets in Resources */,
+				FB7C43E72EFBC012006ED97A /* UPDATE_SELECT_MODE.md in Resources */,
+				FB7C43E62EFBC012006ED97A /* VISUAL_GUIDE.md in Resources */,
 				FBE90E402E2B7E3000C0CCC3 /* Assets.xcassets in Resources */,
+				FB7C43E42EFBC012006ED97A /* INSTALLATION_GUIDE.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -252,6 +271,7 @@
 				FB9900012EF90516007D4364 /* ShapeResizer.swift in Sources */,
 				FB99FFFD2EF8FCE8007D4364 /* ResizeHandle.swift in Sources */,
 				FB5B17342EB460B800128AD0 /* drawing_document.swift in Sources */,
+				FBB6E1D92F4455A500FD8603 /* PDFContextTopLeft.swift in Sources */,
 				FBF9356D2E939F20003618E6 /* WindowManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

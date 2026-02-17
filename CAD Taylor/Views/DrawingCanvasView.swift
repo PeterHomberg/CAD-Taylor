@@ -494,29 +494,24 @@ struct DrawingCanvasView: View {
     }
     
     private func exportPDF() {
-        // Convert shapes back to lines for PDF export
+        // Convert shapes to lines, preserving type information via point count
         let lines = shapes.map { shape in
             Line(points: shape.points, color: shape.color, width: shape.width)
         }
-        PDFExporter.savePDFWithDialog(lines: lines, canvasSize: canvasSize)
+        PDFExporter.savePDFWithDialog(lines: lines, shapes: shapes, canvasSize: canvasSize)
     }
     
     private func saveDrawing() {
-        // TODO: Update to save shapes instead of lines
-        let lines = shapes.map { shape in
-            Line(points: shape.points, color: shape.color, width: shape.width)
-        }
-        DrawingSerializer.saveDrawingWithDialog(lines: lines, canvasSize: canvasSize)
+        // Save shapes directly (preserves type information)
+        DrawingSerializer.saveDrawingWithDialog(shapes: shapes, canvasSize: canvasSize)
     }
     
     private func openDrawing() {
         DrawingSerializer.openDrawingWithDialog { result in
             switch result {
             case .success(let data):
-                // Convert loaded lines to shapes
-                shapes = data.lines.map { line in
-                    Shape(from: line, type: .freehand)
-                }
+                // Shapes are now loaded with correct type information!
+                shapes = data.shapes
                 canvasSize = data.canvasSize
                 currentShape = nil
                 currentCoordinates = CGPoint.zero
