@@ -1,89 +1,168 @@
 // ============================================
 // File: DrawingView.swift
-// Custom drawing view for rendering shapes
+// Core Graphics rendering – ersetzt SwiftUI Path
 // ============================================
 
 import SwiftUI
+import AppKit
 
-struct DrawingView: View {
+// MARK: - SwiftUI-Wrapper (NSViewRepresentable)
+
+struct DrawingView: NSViewRepresentable {
     let shapes: [Shape]
     let currentShape: Shape?
     let temporaryShape: TemporaryShape?
     @Binding var canvasSize: CGSize
-    
-    var body: some View {
-        GeometryReader { geometry in
-            Path { path in
-                // Update canvas size
-                DispatchQueue.main.async {
-                    if canvasSize != geometry.size {
-                        canvasSize = geometry.size
-                    }
-                }
-                
-                // Draw all completed shapes
-                for shape in shapes {
-                    drawShape(shape, into: &path)
-                }
-                
-                // Draw current shape being drawn
-                if let current = currentShape {
-                    drawShape(current, into: &path)
-                }
-                
-                // Draw temporary shape preview
-                if let temp = temporaryShape {
-                    if temp.mode == .square, let rect = temp.rect {
-                        path.addRect(rect)
-                    } else if temp.points.count > 1 {
-                        path.move(to: temp.points[0])
-                        for point in temp.points.dropFirst() {
-                            path.addLine(to: point)
-                        }
-                    }
-                    
-                    // Draw points as circles
-                    for point in temp.points {
-                        let circleRect = CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)
-                        path.addEllipse(in: circleRect)
-                    }
-                }
+
+    func makeNSView(context: Context) -> DrawingNSView {
+        let view = DrawingNSView()
+        view.shapes = shapes
+        view.currentShape = currentShape
+        view.temporaryShape = temporaryShape
+        return view
+    }
+
+    func updateNSView(_ nsView: DrawingNSView, context: Context) {
+        nsView.shapes = shapes
+        nsView.currentShape = currentShape
+        nsView.temporaryShape = temporaryShape
+
+        // Canvas-Größe synchronisieren
+        DispatchQueue.main.async {
+            let newSize = nsView.bounds.size
+            if newSize != .zero, newSize != canvasSize {
+                canvasSize = newSize
             }
-            .stroke(Color.blue, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+        }
+
+        nsView.needsDisplay = true
+    }
+}
+
+// MARK: - Core Graphics NSView
+
+class DrawingNSView: NSView {
+
+    // Daten – bei Änderung needsDisplay setzen
+    var shapes: [Shape] = [] { didSet { needsDisplay = true } }
+    var currentShape: Shape?  { didSet { needsDisplay = true } }
+    var temporaryShape: TemporaryShape? { didSet { needsDisplay = true } }
+
+    // Transparenter Hintergrund (der weiße Canvas liegt darunter)
+    override var isFlipped: Bool { true }   // Koordinatenursprung oben-links, Y wächst nach unten
+
+    // MARK: draw
+
+    override func draw(_ dirtyRect: NSRect) {
+        guard let ctx = NSGraphicsContext.current?.cgContext else { return }
+
+        // -------------------------------------------------------
+        // 1. Fertige Shapes
+        // -------------------------------------------------------
+        for shape in shapes {
+            drawShape(shape, in: ctx)
+        }
+
+        // -------------------------------------------------------
+        // 2. Aktuell in Bearbeitung
+        // -------------------------------------------------------
+        if let current = currentShape {
+            drawShape(current, in: ctx)
+        }
+
+        // -------------------------------------------------------
+        // 3. Temporäre Vorschau (straightLine / square / circleArc)
+        // -------------------------------------------------------
+        if let temp = temporaryShape {
+            ctx.saveGState()
+            ctx.setStrokeColor(NSColor.systemBlue.cgColor)
+            ctx.setLineWidth(2.0)
+            ctx.setLineDash(phase: 0, lengths: [6, 3])
+            ctx.setLineCap(.round)
+            ctx.setLineJoin(.round)
+
+            if temp.mode == .square, let rect = temp.rect {
+                ctx.stroke(rect)
+            } else if temp.points.count > 1 {
+                ctx.move(to: temp.points[0])
+                for point in temp.points.dropFirst() {
+                    ctx.addLine(to: point)
+                }
+                ctx.strokePath()
+            }
+
+            // Ankerpunkte als Kreise
+            ctx.setLineDash(phase: 0, lengths: [])
+            ctx.setFillColor(NSColor.white.cgColor)
+            for point in temp.points {
+                let r: CGFloat = 4
+                let ellipse = CGRect(x: point.x - r, y: point.y - r, width: r * 2, height: r * 2)
+                ctx.fillEllipse(in: ellipse)
+                ctx.strokeEllipse(in: ellipse)
+            }
+
+            ctx.restoreGState()
         }
     }
-    
-    private func drawShape(_ shape: Shape, into path: inout Path) {
+
+    // MARK: - Shape zeichnen
+
+    private func drawShape(_ shape: Shape, in ctx: CGContext) {
         guard !shape.points.isEmpty else { return }
-        
+
+        ctx.saveGState()
+
+        // Farbe
+        let strokeColor = color(from: shape.color)
+        ctx.setStrokeColor(strokeColor)
+        ctx.setLineWidth(shape.width)
+        ctx.setLineCap(.round)
+        ctx.setLineJoin(.round)
+
         switch shape.type {
+
         case .freehand, .circleArc:
-            // Draw as polyline
-            if shape.points.count > 1 {
-                path.move(to: shape.points[0])
-                for point in shape.points.dropFirst() {
-                    path.addLine(to: point)
-                }
+            guard shape.points.count > 1 else { break }
+            ctx.move(to: shape.points[0])
+            for point in shape.points.dropFirst() {
+                ctx.addLine(to: point)
             }
-            
+            ctx.strokePath()
+
         case .straightLine:
-            // Draw straight line from first to last point
-            if shape.points.count >= 2 {
-                path.move(to: shape.points[0])
-                path.addLine(to: shape.points[shape.points.count - 1])
-            }
-            
+            guard shape.points.count >= 2 else { break }
+            ctx.move(to: shape.points[0])
+            ctx.addLine(to: shape.points[shape.points.count - 1])
+            ctx.strokePath()
+
         case .rectangle:
-            // Draw rectangle (4 points in order)
-            if shape.points.count >= 4 {
-                path.move(to: shape.points[0])
-                for point in shape.points.dropFirst() {
-                    path.addLine(to: point)
-                }
-                path.closeSubpath()
+            guard shape.points.count >= 4 else { break }
+            ctx.move(to: shape.points[0])
+            for point in shape.points.dropFirst() {
+                ctx.addLine(to: point)
             }
+            ctx.closePath()
+            ctx.strokePath()
+
         case .text:
-            return // not yet implemented
+            break  // noch nicht implementiert
+        }
+
+        ctx.restoreGState()
+    }
+
+    // MARK: - Hilfsmethoden
+
+    /// Wandelt den gespeicherten Farb-String in CGColor um.
+    private func color(from name: String) -> CGColor {
+        switch name.lowercased() {
+        case "red":    return NSColor.systemRed.cgColor
+        case "green":  return NSColor.systemGreen.cgColor
+        case "blue":   return NSColor.systemBlue.cgColor
+        case "black":  return NSColor.black.cgColor
+        case "white":  return NSColor.white.cgColor
+        case "gray":   return NSColor.gray.cgColor
+        default:       return NSColor.black.cgColor
         }
     }
 }
