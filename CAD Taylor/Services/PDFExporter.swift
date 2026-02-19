@@ -61,10 +61,16 @@ class PDFExporter {
         for shape in shapes {
             if shape.points.count > 1 {
                 context.beginPath()
-                context.move(to: shape.points[0])
+                
+                //context.move(to: CGPoint(x: from.x.pts+marginMM.pts, y: from.y.pts+marginMM.pts))
+                //context.addLine(to: CGPoint(x: to.x.pts+marginMM.pts, y: to.y.pts+marginMM.pts))
+
+                
+                
+                context.move(to: shape.points[0].pts)
                 
                 for point in shape.points.dropFirst() {
-                    context.addLine(to: point)
+                    context.addLine(to: point.pts)
                 }
                 
                 // WICHTIG: Für Rechtecke muss der Pfad geschlossen werden
@@ -126,3 +132,29 @@ class PDFExporter {
     }
 }
 
+extension CGFloat
+{
+    //Millimeter to Points
+    var pts: CGFloat {
+        return self * 72.0 / 25.4
+    }
+    var mm: CGFloat{
+        return self * 25.4 / 72.0
+    }
+}
+extension CGRect {
+    /// Erstellt CGRect aus Millimeter-Werten (konvertiert zu Points)
+    init(xMM x: CGFloat, yMM y: CGFloat, widthMM width: CGFloat, heightMM height: CGFloat) {
+        self.init(
+            x: x * 72.0 / 25.4,
+            y: y * 72.0 / 25.4,
+            width: width * 72.0 / 25.4,
+            height: height * 72.0 / 25.4
+        )
+    }
+}
+extension CGPoint {
+    var pts: CGPoint {
+        return CGPoint(x: x.pts, y: y.pts)
+    }
+}
