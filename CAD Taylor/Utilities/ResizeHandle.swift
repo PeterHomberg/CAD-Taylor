@@ -74,6 +74,8 @@ enum ResizeHandle: Equatable {
             return [.lineStart, .lineEnd]
         case .freehand, .circleArc:
             return []
+        case .text:
+            return []
         }
     }
 }

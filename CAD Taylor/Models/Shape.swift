@@ -11,13 +11,14 @@ enum ShapeType: Codable {
     case straightLine
     case rectangle
     case circleArc
+    case text
 }
 
 struct Shape: Identifiable, Codable {
     var id = UUID()
     var type: ShapeType
     var points: [CGPoint]
-    var color: String = "blue"
+    var color: String = "black"
     var width: CGFloat = 3.0
     var isSelected: Bool = false
     

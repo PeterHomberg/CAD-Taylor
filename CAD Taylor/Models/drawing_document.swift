@@ -145,6 +145,9 @@ private func shapeTypeToString(_ type: ShapeType) -> String {
     case .straightLine: return "straightLine"
     case .rectangle: return "rectangle"
     case .circleArc: return "circleArc"
+        
+    case .text:
+        return "text"
     }
 }
 

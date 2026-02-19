@@ -9,124 +9,78 @@ import PDFKit
 
 class PDFExporter {
     // Neue Methode die mit Shapes arbeitet
-    static func exportToPDF(shapes: [Shape], canvasSize: CGSize) -> Data {
-        let pdfMetaData = [
-            kCGPDFContextCreator: "SwiftUI Canvas Drawing",
-            kCGPDFContextAuthor: "Canvas App"
-        ]
+    private var context: CGContext
+    private let pageHeight: CGFloat
+    private let pdfData = NSMutableData()
+    private let marginMM = CGFloat(5)
+    let pdfMetaData = [
+        kCGPDFContextCreator: "SwiftUI Canvas Drawing",
+        kCGPDFContextAuthor: "Canvas App"
+    ]
+
+    
+    init?(pageSize: CGSize) {
+        var pageSizePts = pageSize
+        pageSizePts.height = pageSize.height.pts
+        pageSizePts.width = pageSize.width.pts
+        var mediaBox = CGRect(origin: .zero, size: pageSizePts)
+        self.pageHeight = pageSize.height.pts
         
-        // Create PDF context
-        let pdfData = NSMutableData()
-        let dataConsumer = CGDataConsumer(data: pdfData)!
-        let pageRect = CGRect(origin: .zero, size: canvasSize)
-        
-        var mediaBox = pageRect
-        let pdfContext = CGContext(consumer: dataConsumer, mediaBox: &mediaBox, pdfMetaData as CFDictionary)!
-        
-        // Begin page
-        pdfContext.beginPDFPage(nil)
-        
+        guard let dataConsumer = CGDataConsumer(data: pdfData),
+              let ctx = CGContext(consumer: dataConsumer, mediaBox: &mediaBox, pdfMetaData as CFDictionary) else {
+            return nil
+        }
+        self.context = ctx
         // WICHTIG: PDF-Koordinatensystem umkehren (Y-Achse spiegeln)
         // PDF hat Ursprung unten links, SwiftUI hat Ursprung oben links
-        pdfContext.translateBy(x: 0, y: canvasSize.height)
-        pdfContext.scaleBy(x: 1.0, y: -1.0)
- 
+        self.context.translateBy(x: 0, y: pageHeight)
+        self.context.scaleBy(x: 1.0, y: -1.0)
+        // Create PDF context
         // Set up drawing context
-        if #available(macOS 10.15, *) {
-            pdfContext.setStrokeColor(NSColor.systemBlue.cgColor)
-        } else {
-            pdfContext.setStrokeColor(NSColor.blue.cgColor)
-        }
-        pdfContext.setLineWidth(3.0)
-        pdfContext.setLineCap(.round)
-        pdfContext.setLineJoin(.round)
-        
+        self.context.setStrokeColor(NSColor.black.cgColor)
+        self.context.setLineWidth(3.0)
+        self.context.setLineCap(.round)
+        self.context.setLineJoin(.round)
+    }
+
+    func beginPage() {
+        context.beginPDFPage(nil)
+    }
+    
+    func endPage() {
+        context.endPDFPage()
+    }
+
+    func exportToPDF(shapes: [Shape]) -> Data {
+        beginPage()
         // Draw all shapes
         for shape in shapes {
             if shape.points.count > 1 {
-                pdfContext.beginPath()
-                pdfContext.move(to: shape.points[0])
+                context.beginPath()
+                context.move(to: shape.points[0])
+                
                 for point in shape.points.dropFirst() {
-                    pdfContext.addLine(to: point)
+                    context.addLine(to: point)
                 }
                 
                 // WICHTIG: Für Rechtecke muss der Pfad geschlossen werden
                 // um die letzte Linie zurück zum Startpunkt zu zeichnen
                 if shape.type == .rectangle {
-                    pdfContext.closePath()
+                    context.closePath()
                 }
                 
-                pdfContext.strokePath()
+                context.strokePath()
             }
         }
-        
-        pdfContext.endPDFPage()
-        pdfContext.closePDF()
-        
+        endPage()
         return pdfData as Data
     }
     
-    // Legacy Methode für Backwards-Kompatibilität
-    static func exportToPDF(lines: [Line], canvasSize: CGSize) -> Data {
-        let pdfMetaData = [
-            kCGPDFContextCreator: "SwiftUI Canvas Drawing",
-            kCGPDFContextAuthor: "Canvas App"
-        ]
-        
-        // Create PDF context
-        let mutableData = NSMutableData()
-        let pdfConsumer = CGDataConsumer(data: mutableData)!
-        let pageRect = CGRect(origin: .zero, size: canvasSize)
-        
-        var mediaBox = pageRect
-        let pdfContext = CGContext(consumer: pdfConsumer, mediaBox: &mediaBox, pdfMetaData as CFDictionary)!
-        
-        // Begin page
-        pdfContext.beginPDFPage(nil)
-        
-        // WICHTIG: PDF-Koordinatensystem umkehren (Y-Achse spiegeln)
-        // PDF hat Ursprung unten links, SwiftUI hat Ursprung oben links
-        pdfContext.translateBy(x: 0, y: canvasSize.height)
-        pdfContext.scaleBy(x: 1.0, y: -1.0)
- 
-        // Set up drawing context
-        if #available(macOS 10.15, *) {
-            pdfContext.setStrokeColor(NSColor.systemBlue.cgColor)
-        } else {
-            pdfContext.setStrokeColor(NSColor.blue.cgColor)
-        }
-        pdfContext.setLineWidth(3.0)
-        pdfContext.setLineCap(.round)
-        pdfContext.setLineJoin(.round)
-        
-        // Draw all lines
-        for line in lines {
-            if line.points.count > 1 {
-                pdfContext.beginPath()
-                pdfContext.move(to: line.points[0])
-                for point in line.points.dropFirst() {
-                    pdfContext.addLine(to: point)
-                }
-                
-                // WICHTIG: Für Rechtecke (4 Punkte) muss der Pfad geschlossen werden
-                // um die letzte Linie zurück zum Startpunkt zu zeichnen
-                if line.points.count == 4 {
-                    pdfContext.closePath()
-                }
-                
-                pdfContext.strokePath()
-            }
-        }
-        
-        pdfContext.endPDFPage()
-        pdfContext.closePDF()
-        
-        return mutableData as Data
-    }
+
     
     // Neue Methode mit Shapes
-    static func savePDFWithDialog(lines: [Line], shapes: [Shape], canvasSize: CGSize) {
-        let pdfData = exportToPDF(shapes: shapes, canvasSize: canvasSize)
+   func savePDFWithDialog( shapes: [Shape]) {
+        let pdfData = exportToPDF(shapes: shapes)
         let savePanel = NSSavePanel()
         
         savePanel.title = "Save Canvas Drawing"
@@ -149,30 +103,7 @@ class PDFExporter {
         }
     }
     
-    // Legacy Methode für Backwards-Kompatibilität
-    static func savePDFWithDialog(lines: [Line], canvasSize: CGSize) {
-        let pdfData = exportToPDF(lines: lines, canvasSize: canvasSize)
-        let savePanel = NSSavePanel()
-        
-        savePanel.title = "Save Canvas Drawing"
-        savePanel.allowedContentTypes = [.pdf]
-        savePanel.nameFieldStringValue = "canvas_drawing_\(Date().timeIntervalSince1970).pdf"
-        savePanel.canCreateDirectories = true
-        
-        savePanel.begin { response in
-            if response == .OK, let url = savePanel.url {
-                do {
-                    try pdfData.write(to: url)
-                    print("PDF saved successfully: \(url.lastPathComponent)")
-                    
-                    // Show in Finder
-                    NSWorkspace.shared.activateFileViewerSelecting([url])
-                } catch {
-                    print("Error saving PDF: \(error)")
-                }
-            }
-        }
-    }
+
     static func openPDFWithDialog(completion: @escaping (URL?) -> Void) {
         let openPanel = NSOpenPanel()
         

@@ -82,6 +82,8 @@ struct DrawingView: View {
                 }
                 path.closeSubpath()
             }
+        case .text:
+            return // not yet implemented
         }
     }
 }

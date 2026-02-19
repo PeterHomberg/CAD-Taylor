@@ -498,7 +498,15 @@ struct DrawingCanvasView: View {
         let lines = shapes.map { shape in
             Line(points: shape.points, color: shape.color, width: shape.width)
         }
-        PDFExporter.savePDFWithDialog(lines: lines, shapes: shapes, canvasSize: canvasSize)
+        
+        guard let pdf = PDFExporter(pageSize: canvasSize) else {
+            print("Konnte pdf nicht erstellen")
+            return
+        }
+
+        
+        
+        pdf.savePDFWithDialog(shapes: shapes)
     }
     
     private func saveDrawing() {
@@ -531,6 +539,8 @@ extension ShapeType {
         case .straightLine: return "Straight Line"
         case .rectangle: return "Rectangle"
         case .circleArc: return "Circle Arc"
+        case .text: return "Text"
+            
         }
     }
 }

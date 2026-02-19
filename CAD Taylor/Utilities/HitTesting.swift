@@ -36,6 +36,8 @@ struct HitTesting {
             
         case .freehand, .circleArc:
             return distanceToPolyline(point, shape: shape) < tolerance
+        case .text:
+            return false // not yet implemeted
         }
     }
     
