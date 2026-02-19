@@ -31,10 +31,6 @@ class PDFExporter {
             return nil
         }
         self.context = ctx
-        // WICHTIG: PDF-Koordinatensystem umkehren (Y-Achse spiegeln)
-        // PDF hat Ursprung unten links, SwiftUI hat Ursprung oben links
-        self.context.translateBy(x: 0, y: pageHeight)
-        self.context.scaleBy(x: 1.0, y: -1.0)
         // Create PDF context
         // Set up drawing context
         self.context.setStrokeColor(NSColor.black.cgColor)
@@ -45,12 +41,20 @@ class PDFExporter {
 
     func beginPage() {
         context.beginPDFPage(nil)
+        // WICHTIG: PDF-Koordinatensystem umkehren (Y-Achse spiegeln)
+        // PDF hat Ursprung unten links, SwiftUI hat Ursprung oben links
+        self.context.translateBy(x: 0, y: pageHeight)
+        self.context.scaleBy(x: 1.0, y: -1.0)
+
     }
     
     func endPage() {
         context.endPDFPage()
     }
-
+    func finish() -> Data {
+        context.closePDF()
+        return pdfData as Data
+    }
     func exportToPDF(shapes: [Shape]) -> Data {
         beginPage()
         // Draw all shapes
@@ -73,7 +77,7 @@ class PDFExporter {
             }
         }
         endPage()
-        return pdfData as Data
+        return finish()
     }
     
 

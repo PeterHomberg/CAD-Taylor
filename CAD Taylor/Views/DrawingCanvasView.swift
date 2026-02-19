@@ -25,7 +25,7 @@ struct DrawingCanvasView: View {
     
     // UI state
     @State private var currentCoordinates = CGPoint.zero
-    @State private var canvasSize = CGSize(width: 600, height: 400)
+    @State private var canvasSize = CGSize(width: 210, height: 297)
     @State private var showCoordinates = true
     @State private var zoomLevel: CGFloat = 1.0
     
