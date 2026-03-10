@@ -46,6 +46,7 @@
 		FB6E2C302EDBE27E00E8EF11 /* HitTesting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HitTesting.swift; sourceTree = "<group>"; };
 		FB6E2C342EDBE2F600E8EF11 /* EditToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditToolbar.swift; sourceTree = "<group>"; };
 		FB6E2C382EDBE8BD00E8EF11 /* SharedComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedComponents.swift; sourceTree = "<group>"; };
+		FB7A1F752F5EC622009720F5 /* RechteckZeichnen.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = RechteckZeichnen.md; sourceTree = "<group>"; };
 		FB7C43E02EFBC011006ED97A /* INSTALLATION_GUIDE.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = INSTALLATION_GUIDE.md; sourceTree = "<group>"; };
 		FB7C43E12EFBC011006ED97A /* FIX_RECTANGLE_CLOSING.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = FIX_RECTANGLE_CLOSING.md; sourceTree = "<group>"; };
 		FB7C43E22EFBC012006ED97A /* VISUAL_GUIDE.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = VISUAL_GUIDE.md; sourceTree = "<group>"; };
@@ -84,6 +85,7 @@
 		FBE90E2F2E2B7E2E00C0CCC3 = {
 			isa = PBXGroup;
 			children = (
+				FB7A1F752F5EC622009720F5 /* RechteckZeichnen.md */,
 				FB7C43E12EFBC011006ED97A /* FIX_RECTANGLE_CLOSING.md */,
 				FB7C43E02EFBC011006ED97A /* INSTALLATION_GUIDE.md */,
 				FB7C43E32EFBC012006ED97A /* UPDATE_SELECT_MODE.md */,
