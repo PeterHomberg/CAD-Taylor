@@ -300,6 +300,8 @@ struct DrawingCanvasView: View {
             
         case .circleArc:
             break
+        case .cubicBezier:
+            break
         }
     }
     
@@ -345,6 +347,8 @@ struct DrawingCanvasView: View {
                 }
                 temporaryShape = nil
             }
+        case .cubicBezier:
+            break
         }
     }
     

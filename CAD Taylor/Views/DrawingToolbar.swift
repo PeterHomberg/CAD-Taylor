@@ -86,6 +86,16 @@ struct DrawingToolbar: View {
             Divider()
                 .padding(.vertical, 8)
             
+            // Kubische Bézierkurve (NEU)
+             ToolButton(title: "Cubic Bézier", icon: "scribble.variable",
+                        isSelected: selectedMode == .cubicBezier) {
+                 selectedMode = .cubicBezier
+             }
+             Text("Click to place points · Drag to pull handles · Double-click to finish")
+                 .font(.caption).foregroundColor(.gray).padding(.leading, 8)
+                 .fixedSize(horizontal: false, vertical: true)
+
+            
             // Coordinate input for rectangle (NEW!)
             if selectedMode == .square {
                 if let rectangle = lastRectangle {

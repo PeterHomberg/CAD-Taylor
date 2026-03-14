@@ -19,6 +19,8 @@ enum DrawingMode {
     case straightLine
     case circleArc
     case square
+    case cubicBezier
+    
 }
 
 // Für temporäre Zeichnungen während der Erstellung
