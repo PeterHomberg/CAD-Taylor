@@ -11,6 +11,7 @@ struct DrawingToolbar: View {
     @Binding var shapes: [Shape]
     @Binding var showInMillimeters: Bool
     @ObservedObject var model: DrawingModel
+    var onCommitBezier: () -> Void
     
     // Computed: letztes gezeichnetes Rechteck für Koordinaten-Eingabe
     private var lastRectangle: Shape? {
@@ -103,6 +104,10 @@ struct DrawingToolbar: View {
                 HStack {
                     Toggle("Pen Mode", isOn: $model.penMode)
                         .toggleStyle(.checkbox)
+                    Button("Clear Canvas",action: model.clear)
+                    Button("Commit",action: onCommitBezier)
+                        .padding()
+
                 }
             }
 

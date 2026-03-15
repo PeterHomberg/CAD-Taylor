@@ -244,7 +244,8 @@ struct DrawingCanvasView: View {
                     selectedMode: $selectedDrawingMode,
                     shapes: $shapes,
                     showInMillimeters: $showInMillimeters,
-                    model: model
+                    model: model,
+                    onCommitBezier: commitBezierShape
                 )
             } else {
                 EditToolbar(
@@ -714,6 +715,22 @@ struct DrawingCanvasView: View {
             }
         }
     }
+    private func commitBezierShape() {
+        guard !model.bezierSegments.isEmpty else {
+            print("commitBezierShape: model.bezierSegments is EMPTY — nothing to commit")
+            return
+        }
+        let shape = Shape(type: .cubicBezier, bezierSegments: model.bezierSegments)
+        print("commitBezierShape: created shape type=\(shape.type) segments=\(shape.bezierSegments.count)")
+        print("commitBezierShape: geometry=\(shape.geometry)")
+        shapes.append(shape)
+        print("commitBezierShape: shapes.count=\(shapes.count), last type=\(shapes.last!.type)")
+        model.clear()
+        model.bezierMode = false        // ← triggers clean re-render with updated shapes
+        selectedDrawingMode = .freehand // ← optional: switch tool back
+
+    }
+    
 }
 
 // MARK: - Shape Type Extension

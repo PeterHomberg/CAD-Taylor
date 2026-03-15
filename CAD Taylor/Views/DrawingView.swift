@@ -285,7 +285,7 @@ class DrawingNSView: NSView {
     // MARK: - Shape zeichnen
 
     private func drawShape(_ shape: Shape, in ctx: CGContext) {
-        guard !shape.points.isEmpty else { return }
+        
 
         ctx.saveGState()
 
@@ -299,6 +299,7 @@ class DrawingNSView: NSView {
         switch shape.type {
 
         case .freehand, .circleArc:
+            
             guard shape.points.count > 1 else { break }
             ctx.move(to: shape.points[0])
             for point in shape.points.dropFirst() {
@@ -324,7 +325,13 @@ class DrawingNSView: NSView {
         case .text:
             break  // noch nicht implementiert
         case .cubicBezier:
-            break
+            print("drawShape: entering cubicBezier case")
+            guard shape.bezierSegments.count > 1 else {
+                print("drawShape: not enough segments")
+                break
+            }
+            drawBezierCurve(segments: shape.bezierSegments, ctx: ctx)
+
         }
 
         ctx.restoreGState()
@@ -382,6 +389,19 @@ class DrawingNSView: NSView {
         ctx.strokePath()
 
     }
+    private func drawBezierCurve(segments: [BezierSegment], ctx: CGContext) -> () {
+        ctx.move(to: segments[0].curvePoint)
+        for i in 1..<segments.count {
+            let endPoint=segments[i]
+            let startPoint = segments[i-1]
+            if endPoint.controlPoint != .zero {
+                ctx.addCurve(to: endPoint.curvePoint, control1: startPoint.controlPoint , control2: startPoint.controlPoint1)
+            }
+        }
+        ctx.setStrokeColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
+        ctx.setLineWidth(2)
+        ctx.strokePath()
 
+    }
 
 }
