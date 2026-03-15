@@ -14,11 +14,16 @@ struct DrawingView: NSViewRepresentable {
     let temporaryShape: TemporaryShape?
     @Binding var canvasSize: CGSize
 
+    // callback for mouse move
+    var onMouseMoved: ((CGPoint) -> Void)?
+    
+
     func makeNSView(context: Context) -> DrawingNSView {
         let view = DrawingNSView()
         view.shapes = shapes
         view.currentShape = currentShape
         view.temporaryShape = temporaryShape
+        view.onMouseMoved = onMouseMoved
         return view
     }
 
@@ -26,6 +31,7 @@ struct DrawingView: NSViewRepresentable {
         nsView.shapes = shapes
         nsView.currentShape = currentShape
         nsView.temporaryShape = temporaryShape
+        nsView.onMouseMoved = onMouseMoved
 
         // Canvas-Größe synchronisieren
         DispatchQueue.main.async {
@@ -50,7 +56,15 @@ class DrawingNSView: NSView {
 
     // Transparenter Hintergrund (der weiße Canvas liegt darunter)
     override var isFlipped: Bool { true }   // Koordinatenursprung oben-links, Y wächst nach unten
-
+    override var acceptsFirstResponder: Bool {true}
+    
+    // callback for mouse move
+    var onMouseMoved: ((CGPoint) -> Void)?
+    override func mouseMoved(with event: NSEvent) {
+        let location = convert(event.locationInWindow, from: nil)
+        let flipped = CGPoint(x: location.x, y: bounds.height - location.y)
+        onMouseMoved?(flipped)
+    }
     // MARK: draw
 
     override func draw(_ dirtyRect: NSRect) {

@@ -56,7 +56,7 @@ struct DrawingCanvasView: View {
                                 .fill(Color.white)
                                 .border(Color.gray, width: 1)
                                 .shadow(color: .gray.opacity(0.4), radius: 5, x: 2, y: 2)
-                            
+                            /*----------------------------------------------------------------------
                             MouseTrackingView { location in
                                 // Koordinaten direkt übernehmen (kein zoomLevel-Offset nötig,
                                 // da der Canvas selbst skaliert wird)
@@ -66,14 +66,21 @@ struct DrawingCanvasView: View {
                                 )
                                 currentCoordinates = adjustedLocation
                             }
-                            
+                            ------------------------------------------------------------------------*/
                             DrawingView(
                                 shapes: shapes,
                                 currentShape: currentShape,
                                 temporaryShape: temporaryShape,
                                 canvasSize: $canvasSize
-                            )
-                            
+                            ){ location in
+                                // Koordinaten direkt übernehmen (kein zoomLevel-Offset nötig,
+                                // da der Canvas selbst skaliert wird)
+                                let adjustedLocation = CGPoint(
+                                    x: location.x / zoomLevel,
+                                    y: location.y / zoomLevel
+                                )
+                                currentCoordinates = adjustedLocation
+                            }
                             if let selectedID = selectedShapeID,
                                let shape = shapes.first(where: { $0.id == selectedID }) {
                                 SelectionOverlay(shape: shape)
@@ -544,55 +551,59 @@ extension ShapeType {
     }
 }
 
-// MARK: - Mouse Tracking View
-struct MouseTrackingView: NSViewRepresentable {
-    let onMouseMoved: (CGPoint) -> Void
-    
-    func makeNSView(context: Context) -> NSView {
-        let view = MouseTrackingNSView()
-        view.onMouseMoved = onMouseMoved
-        return view
-    }
-    
-    func updateNSView(_ nsView: NSView, context: Context) {
-        if let trackingView = nsView as? MouseTrackingNSView {
-            trackingView.onMouseMoved = onMouseMoved
-        }
-    }
-}
-
-class MouseTrackingNSView: NSView {
-    var onMouseMoved: ((CGPoint) -> Void)?
-    private var trackingArea: NSTrackingArea?
-    
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        
-        if let trackingArea = trackingArea {
-            removeTrackingArea(trackingArea)
-        }
-        
-        let options: NSTrackingArea.Options = [
-            .mouseMoved,
-            .activeInKeyWindow,
-            .inVisibleRect
-        ]
-        
-        trackingArea = NSTrackingArea(
-            rect: bounds,
-            options: options,
-            owner: self,
-            userInfo: nil
-        )
-        
-        if let trackingArea = trackingArea {
-            addTrackingArea(trackingArea)
-        }
-    }
-    
-    override func mouseMoved(with event: NSEvent) {
-        let location = convert(event.locationInWindow, from: nil)
-        let flippedLocation = CGPoint(x: location.x, y: bounds.height - location.y)
-        onMouseMoved?(flippedLocation)
-    }
-}
+/************************************************************************************
+ no more needed
+ 
+ // MARK: - Mouse Tracking View
+ struct MouseTrackingView: NSViewRepresentable {
+ let onMouseMoved: (CGPoint) -> Void
+ 
+ func makeNSView(context: Context) -> NSView {
+ let view = MouseTrackingNSView()
+ view.onMouseMoved = onMouseMoved
+ return view
+ }
+ 
+ func updateNSView(_ nsView: NSView, context: Context) {
+ if let trackingView = nsView as? MouseTrackingNSView {
+ trackingView.onMouseMoved = onMouseMoved
+ }
+ }
+ }
+ 
+ class MouseTrackingNSView: NSView {
+ var onMouseMoved: ((CGPoint) -> Void)?
+ private var trackingArea: NSTrackingArea?
+ 
+ override func updateTrackingAreas() {
+ super.updateTrackingAreas()
+ 
+ if let trackingArea = trackingArea {
+ removeTrackingArea(trackingArea)
+ }
+ 
+ let options: NSTrackingArea.Options = [
+ .mouseMoved,
+ .activeInKeyWindow,
+ .inVisibleRect
+ ]
+ 
+ trackingArea = NSTrackingArea(
+ rect: bounds,
+ options: options,
+ owner: self,
+ userInfo: nil
+ )
+ 
+ if let trackingArea = trackingArea {
+ addTrackingArea(trackingArea)
+ }
+ }
+ 
+ override func mouseMoved(with event: NSEvent) {
+ let location = convert(event.locationInWindow, from: nil)
+ let flippedLocation = CGPoint(x: location.x, y: bounds.height - location.y)
+ onMouseMoved?(flippedLocation)
+ }
+ }
+ ---------------------------------------------------------------*/
