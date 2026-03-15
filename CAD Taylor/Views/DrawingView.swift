@@ -323,6 +323,8 @@ class DrawingNSView: NSView {
 
         case .text:
             break  // noch nicht implementiert
+        case .cubicBezier:
+            break
         }
 
         ctx.restoreGState()

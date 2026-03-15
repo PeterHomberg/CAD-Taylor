@@ -8,73 +8,99 @@ import CoreGraphics
 
 struct DrawingDocument: Codable {
     var lines: [SerializableLine]
-    var shapes: [SerializableShape]?  // NEU: Optional für Backwards-Kompatibilität
+    var shapes: [SerializableShape]?
     var canvasSize: SerializableSize
     var version: String = "1.0"
-    
+
+    // MARK: - Serializable types
+
     struct SerializableLine: Codable {
         var points: [SerializablePoint]
         var color: String
         var width: Double
     }
-    
+
     struct SerializableShape: Codable {
         var id: String
-        var type: String  // "freehand", "straightLine", "rectangle", "circleArc"
-        var points: [SerializablePoint]
+        var type: String  // "freehand", "straightLine", "rectangle", "circleArc", "cubicBezier"
+        var points: [SerializablePoint]                          // used by all non-bezier shapes
+        var bezierSegments: [SerializableBezierSegment]?         // only for cubicBezier
         var color: String
         var width: Double
     }
-    
+
     struct SerializablePoint: Codable {
         var x: Double
         var y: Double
     }
-    
+
+    struct SerializableBezierSegment: Codable {
+        var curvePoint:    SerializablePoint
+        var controlPoint:  SerializablePoint
+        var curvePoint1:   SerializablePoint
+        var controlPoint1: SerializablePoint
+    }
+
     struct SerializableSize: Codable {
         var width: Double
         var height: Double
     }
-    
-    // NEU: Convert from Shapes to serializable model
+
+    // MARK: - Init from Shapes
+
     init(shapes: [Shape], canvasSize: CGSize) {
-        // Convert shapes to serializable format
         self.shapes = shapes.map { shape in
-            SerializableShape(
-                id: shape.id.uuidString,
-                type: shapeTypeToString(shape.type),
-                points: shape.points.map { point in
-                    SerializablePoint(x: Double(point.x), y: Double(point.y))
-                },
+            switch shape.geometry {
+            case .points(let pts):
+                return SerializableShape(
+                    id: shape.id.uuidString,
+                    type: shapeTypeToString(shape.type),
+                    points: pts.map { SerializablePoint(x: Double($0.x), y: Double($0.y)) },
+                    bezierSegments: nil,
+                    color: shape.color,
+                    width: Double(shape.width)
+                )
+            case .bezier(let segs):
+                return SerializableShape(
+                    id: shape.id.uuidString,
+                    type: shapeTypeToString(shape.type),
+                    points: [],
+                    bezierSegments: segs.map { seg in
+                        SerializableBezierSegment(
+                            curvePoint:    SerializablePoint(x: Double(seg.curvePoint.x),    y: Double(seg.curvePoint.y)),
+                            controlPoint:  SerializablePoint(x: Double(seg.controlPoint.x),  y: Double(seg.controlPoint.y)),
+                            curvePoint1:   SerializablePoint(x: Double(seg.curvePoint1.x),   y: Double(seg.curvePoint1.y)),
+                            controlPoint1: SerializablePoint(x: Double(seg.controlPoint1.x), y: Double(seg.controlPoint1.y))
+                        )
+                    },
+                    color: shape.color,
+                    width: Double(shape.width)
+                )
+            }
+        }
+
+        // Keep lines for backwards compatibility (bezier shapes are skipped here)
+        self.lines = shapes.compactMap { shape in
+            guard case .points(let pts) = shape.geometry else { return nil }
+            return SerializableLine(
+                points: pts.map { SerializablePoint(x: Double($0.x), y: Double($0.y)) },
                 color: shape.color,
                 width: Double(shape.width)
             )
         }
-        
-        // Also save as lines for backwards compatibility
-        self.lines = shapes.map { shape in
-            SerializableLine(
-                points: shape.points.map { point in
-                    SerializablePoint(x: Double(point.x), y: Double(point.y))
-                },
-                color: shape.color,
-                width: Double(shape.width)
-            )
-        }
-        
+
         self.canvasSize = SerializableSize(
             width: Double(canvasSize.width),
             height: Double(canvasSize.height)
         )
     }
-    
-    // Legacy: Convert from Lines (for old code)
+
+    // MARK: - Legacy init from Lines
+
     init(lines: [Line], canvasSize: CGSize) {
         self.lines = lines.map { line in
             SerializableLine(
-                points: line.points.map { point in
-                    SerializablePoint(x: Double(point.x), y: Double(point.y))
-                },
+                points: line.points.map { SerializablePoint(x: Double($0.x), y: Double($0.y)) },
                 color: line.color,
                 width: Double(line.width)
             )
@@ -84,79 +110,77 @@ struct DrawingDocument: Codable {
             height: Double(canvasSize.height)
         )
     }
-    
-    // Convert to app model
+
+    // MARK: - Convert to app model
+
     func toLines() -> [Line] {
         return lines.map { serializableLine in
             Line(
-                points: serializableLine.points.map { point in
-                    CGPoint(x: CGFloat(point.x), y: CGFloat(point.y))
-                },
+                points: serializableLine.points.map { CGPoint(x: CGFloat($0.x), y: CGFloat($0.y)) },
                 color: serializableLine.color,
                 width: CGFloat(serializableLine.width)
             )
         }
     }
-    
-    // NEU: Convert to Shapes
+
     func toShapes() -> [Shape] {
         // Prefer shapes array if available (new format)
         if let shapes = shapes {
-            return shapes.map { serializableShape in
-                Shape(
-                    type: stringToShapeType(serializableShape.type),
-                    points: serializableShape.points.map { point in
-                        CGPoint(x: CGFloat(point.x), y: CGFloat(point.y))
-                    },
-                    color: serializableShape.color,
-                    width: CGFloat(serializableShape.width)
-                )
+            return shapes.map { s in
+                let type = stringToShapeType(s.type)
+
+                // Bezier shape — restore from bezierSegments if present
+                if type == .cubicBezier, let segs = s.bezierSegments {
+                    let bezierSegments = segs.map { seg in
+                        BezierSegment(
+                            curvePoint:    CGPoint(x: seg.curvePoint.x,    y: seg.curvePoint.y),
+                            controlPoint:  CGPoint(x: seg.controlPoint.x,  y: seg.controlPoint.y),
+                            curvePoint1:   CGPoint(x: seg.curvePoint1.x,   y: seg.curvePoint1.y),
+                            controlPoint1: CGPoint(x: seg.controlPoint1.x, y: seg.controlPoint1.y)
+                        )
+                    }
+                    return Shape(type: type, bezierSegments: bezierSegments, color: s.color, width: CGFloat(s.width))
+                }
+
+                // All other shapes — restore from points
+                let points = s.points.map { CGPoint(x: CGFloat($0.x), y: CGFloat($0.y)) }
+                return Shape(type: type, points: points, color: s.color, width: CGFloat(s.width))
             }
         }
-        
-        // Fallback to lines for backwards compatibility
-        // Try to detect rectangles by point count
-        return lines.map { serializableLine in
-            let points = serializableLine.points.map { point in
-                CGPoint(x: CGFloat(point.x), y: CGFloat(point.y))
-            }
-            
-            // Heuristik: 4 Punkte = wahrscheinlich Rectangle
+
+        // Fallback: load from legacy lines array
+        return lines.map { line in
+            let points = line.points.map { CGPoint(x: CGFloat($0.x), y: CGFloat($0.y)) }
             let type: ShapeType = (points.count == 4) ? .rectangle : .freehand
-            
-            return Shape(
-                type: type,
-                points: points,
-                color: serializableLine.color,
-                width: CGFloat(serializableLine.width)
-            )
+            return Shape(type: type, points: points, color: line.color, width: CGFloat(line.width))
         }
     }
-    
+
     func toCanvasSize() -> CGSize {
-        return CGSize(width: CGFloat(canvasSize.width), height: CGFloat(canvasSize.height))
+        CGSize(width: CGFloat(canvasSize.width), height: CGFloat(canvasSize.height))
     }
 }
 
-// Helper functions for ShapeType conversion
+// MARK: - ShapeType string conversion
+
 private func shapeTypeToString(_ type: ShapeType) -> String {
     switch type {
-    case .freehand: return "freehand"
+    case .freehand:     return "freehand"
     case .straightLine: return "straightLine"
-    case .rectangle: return "rectangle"
-    case .circleArc: return "circleArc"
-        
-    case .text:
-        return "text"
+    case .rectangle:    return "rectangle"
+    case .circleArc:    return "circleArc"
+    case .cubicBezier:  return "cubicBezier"
+    case .text:         return "text"
     }
 }
 
 private func stringToShapeType(_ string: String) -> ShapeType {
     switch string {
-    case "freehand": return .freehand
+    case "freehand":     return .freehand
     case "straightLine": return .straightLine
-    case "rectangle": return .rectangle
-    case "circleArc": return .circleArc
-    default: return .freehand
+    case "rectangle":    return .rectangle
+    case "circleArc":    return .circleArc
+    case "cubicBezier":  return .cubicBezier
+    default:             return .freehand
     }
 }

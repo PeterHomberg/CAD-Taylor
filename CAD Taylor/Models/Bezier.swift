@@ -25,7 +25,7 @@ class DrawingModel: ObservableObject {
     }
 }
 
-struct BezierSegment {
+struct BezierSegment: Codable{
     var curvePoint: CGPoint = .zero
     var controlPoint: CGPoint = .zero
     var curvePoint1: CGPoint = .zero

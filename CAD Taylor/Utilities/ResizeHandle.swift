@@ -76,6 +76,8 @@ enum ResizeHandle: Equatable {
             return []
         case .text:
             return []
+        case .cubicBezier:
+            return []
         }
     }
 }

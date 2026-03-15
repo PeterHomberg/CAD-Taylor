@@ -725,6 +725,7 @@ extension ShapeType {
         case .rectangle: return "Rectangle"
         case .circleArc: return "Circle Arc"
         case .text: return "Text"
+        case .cubicBezier: return "Cubic Bezier"
             
         }
     }
