@@ -34,6 +34,7 @@ struct DrawingCanvasView: View {
     @State private var mouseDownLocation: CGPoint?
     @Binding var showInMillimeters: Bool
     
+    @StateObject var model = DrawingModel()
     var body: some View {
         HStack(spacing: 0) {
             // Main canvas area
@@ -68,10 +69,12 @@ struct DrawingCanvasView: View {
                             }
                             ------------------------------------------------------------------------*/
                             DrawingView(
+                                model: model,
                                 shapes: shapes,
                                 currentShape: currentShape,
                                 temporaryShape: temporaryShape,
                                 canvasSize: $canvasSize,
+                                
                                 onMouseMoved:{ location in
                                     // Koordinaten direkt übernehmen (kein zoomLevel-Offset nötig,
                                     // da der Canvas selbst skaliert wird)
@@ -240,7 +243,8 @@ struct DrawingCanvasView: View {
                 DrawingToolbar(
                     selectedMode: $selectedDrawingMode,
                     shapes: $shapes,
-                    showInMillimeters: $showInMillimeters
+                    showInMillimeters: $showInMillimeters,
+                    model: model
                 )
             } else {
                 EditToolbar(

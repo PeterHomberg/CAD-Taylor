@@ -10,6 +10,7 @@ struct DrawingToolbar: View {
     @Binding var selectedMode: DrawingMode
     @Binding var shapes: [Shape]
     @Binding var showInMillimeters: Bool
+    @ObservedObject var model: DrawingModel
     
     // Computed: letztes gezeichnetes Rechteck für Koordinaten-Eingabe
     private var lastRectangle: Shape? {
@@ -30,6 +31,7 @@ struct DrawingToolbar: View {
                     isSelected: selectedMode == .freehand
                 ) {
                     selectedMode = .freehand
+                    model.bezierMode = false
                 }
                 
                 Divider()
@@ -41,6 +43,7 @@ struct DrawingToolbar: View {
                     isSelected: selectedMode == .straightLine
                 ) {
                     selectedMode = .straightLine
+                    model.bezierMode = false
                 }
                 
                 Text("Click start point, then end point")
@@ -59,6 +62,7 @@ struct DrawingToolbar: View {
                     isSelected: selectedMode == .circleArc
                 ) {
                     selectedMode = .circleArc
+                    model.bezierMode = false
                 }
                 
                 Text("Click three points to define arc")
@@ -75,6 +79,7 @@ struct DrawingToolbar: View {
                     isSelected: selectedMode == .square
                 ) {
                     selectedMode = .square
+                    model.bezierMode = false
                 }
                 
                 Text("Click top-left, then drag to bottom-right")
@@ -85,15 +90,21 @@ struct DrawingToolbar: View {
             
             Divider()
                 .padding(.vertical, 8)
-            
-            // Kubische Bézierkurve (NEU)
-             ToolButton(title: "Cubic Bézier", icon: "scribble.variable",
-                        isSelected: selectedMode == .cubicBezier) {
-                 selectedMode = .cubicBezier
-             }
-             Text("Click to place points · Drag to pull handles · Double-click to finish")
-                 .font(.caption).foregroundColor(.gray).padding(.leading, 8)
-                 .fixedSize(horizontal: false, vertical: true)
+            VStack {
+                // Kubische Bézierkurve (NEU)
+                ToolButton(title: "Cubic Bézier", icon: "scribble.variable",
+                           isSelected: selectedMode == .cubicBezier) {
+                    selectedMode = .cubicBezier
+                    model.bezierMode = true
+                }
+                Text("Click to place points · Drag to pull handles · Double-click to finish")
+                    .font(.caption).foregroundColor(.gray).padding(.leading, 8)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Toggle("Pen Mode", isOn: $model.penMode)
+                        .toggleStyle(.checkbox)
+                }
+            }
 
             
             // Coordinate input for rectangle (NEW!)

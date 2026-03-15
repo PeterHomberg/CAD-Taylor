@@ -24,6 +24,8 @@
 		FB99FFFF2EF8FD30007D4364 /* SelectionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB99FFFE2EF8FD30007D4364 /* SelectionOverlay.swift */; };
 		FBBB353C2EBC3F720067C79C /* DrawingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBBB353B2EBC3F720067C79C /* DrawingMode.swift */; };
 		FBBB353E2EBC3FB60067C79C /* DrawingToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBBB353D2EBC3FB60067C79C /* DrawingToolbar.swift */; };
+		FBDF28C62F665DC100E61ACD /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBDF28C52F665DC100E61ACD /* Bezier.swift */; };
+		FBDF28C82F6665E400E61ACD /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBDF28C72F6665E400E61ACD /* Helpers.swift */; };
 		FBE90E3C2E2B7E2E00C0CCC3 /* CADTaylorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE90E3B2E2B7E2E00C0CCC3 /* CADTaylorApp.swift */; };
 		FBE90E402E2B7E3000C0CCC3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FBE90E3F2E2B7E3000C0CCC3 /* Assets.xcassets */; };
 		FBE90E432E2B7E3000C0CCC3 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FBE90E422E2B7E3000C0CCC3 /* Preview Assets.xcassets */; };
@@ -56,6 +58,8 @@
 		FB99FFFE2EF8FD30007D4364 /* SelectionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionOverlay.swift; sourceTree = "<group>"; };
 		FBBB353B2EBC3F720067C79C /* DrawingMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingMode.swift; sourceTree = "<group>"; };
 		FBBB353D2EBC3FB60067C79C /* DrawingToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingToolbar.swift; sourceTree = "<group>"; };
+		FBDF28C52F665DC100E61ACD /* Bezier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bezier.swift; sourceTree = "<group>"; };
+		FBDF28C72F6665E400E61ACD /* Helpers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Helpers.swift; path = ../../../../SwiftUI/LearnSwiftUI/CGraphicsTutorial/CGraphicsTutorial/Helpers.swift; sourceTree = "<group>"; };
 		FBE90E382E2B7E2E00C0CCC3 /* CAD Taylor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CAD Taylor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		FBE90E3B2E2B7E2E00C0CCC3 /* CADTaylorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CADTaylorApp.swift; sourceTree = "<group>"; };
 		FBE90E3F2E2B7E3000C0CCC3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -137,6 +141,7 @@
 				FBBB353B2EBC3F720067C79C /* DrawingMode.swift */,
 				FB6E2C2C2EDBE1C600E8EF11 /* Shape.swift */,
 				FB6E2C2E2EDBE22B00E8EF11 /* InteractionMode.swift */,
+				FBDF28C52F665DC100E61ACD /* Bezier.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -165,6 +170,7 @@
 		FBF935692E939263003618E6 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				FBDF28C72F6665E400E61ACD /* Helpers.swift */,
 				FB5B17372EB482AE00128AD0 /* coordinate_converter.swift */,
 				FB5B17352EB461EE00128AD0 /* drawing_serializer.swift */,
 				FBF9356A2E939281003618E6 /* ViewModifiers.swift */,
@@ -267,6 +273,8 @@
 				FB5B17382EB482AE00128AD0 /* coordinate_converter.swift in Sources */,
 				FB6E2C352EDBE2F600E8EF11 /* EditToolbar.swift in Sources */,
 				FBF935642E9391A1003618E6 /* DrawingCanvasView.swift in Sources */,
+				FBDF28C62F665DC100E61ACD /* Bezier.swift in Sources */,
+				FBDF28C82F6665E400E61ACD /* Helpers.swift in Sources */,
 				FB9900012EF90516007D4364 /* ShapeResizer.swift in Sources */,
 				FB99FFFD2EF8FCE8007D4364 /* ResizeHandle.swift in Sources */,
 				FB5B17342EB460B800128AD0 /* drawing_document.swift in Sources */,
