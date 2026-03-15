@@ -31,7 +31,7 @@ struct DrawingCanvasView: View {
     @State private var canvasSize = DrawingCanvasView.a4Size
     @State private var showCoordinates = true
     @State private var zoomLevel: CGFloat = 1.0
-    
+    @State private var mouseDownLocation: CGPoint?
     @Binding var showInMillimeters: Bool
     
     var body: some View {
@@ -71,16 +71,33 @@ struct DrawingCanvasView: View {
                                 shapes: shapes,
                                 currentShape: currentShape,
                                 temporaryShape: temporaryShape,
-                                canvasSize: $canvasSize
-                            ){ location in
-                                // Koordinaten direkt übernehmen (kein zoomLevel-Offset nötig,
-                                // da der Canvas selbst skaliert wird)
-                                let adjustedLocation = CGPoint(
-                                    x: location.x / zoomLevel,
-                                    y: location.y / zoomLevel
-                                )
-                                currentCoordinates = adjustedLocation
-                            }
+                                canvasSize: $canvasSize,
+                                onMouseMoved:{ location in
+                                    // Koordinaten direkt übernehmen (kein zoomLevel-Offset nötig,
+                                    // da der Canvas selbst skaliert wird)
+                                    let adjustedLocation = CGPoint(
+                                        x: location.x / zoomLevel,
+                                        y: location.y / zoomLevel
+                                    )
+                                    currentCoordinates = adjustedLocation
+                                },
+                                onMouseDown: { location in
+                                    let adjusted = CGPoint(x: location.x / zoomLevel,
+                                                           y: location.y / zoomLevel)
+                                    mouseDownLocation = adjusted
+                                    handleMouseDown(at: adjusted)
+                                },
+                                onMouseDragged: { location in
+                                     let adjusted = CGPoint(x: location.x / zoomLevel,
+                                                            y: location.y / zoomLevel)
+                                     handleMouseDragged(at: adjusted)
+                                 },
+                                 onMouseUp: { location in
+                                     let adjusted = CGPoint(x: location.x / zoomLevel,
+                                                            y: location.y / zoomLevel)
+                                     handleMouseUp(at: adjusted)
+                                 }
+                            )
                             if let selectedID = selectedShapeID,
                                let shape = shapes.first(where: { $0.id == selectedID }) {
                                 SelectionOverlay(shape: shape)
@@ -88,6 +105,7 @@ struct DrawingCanvasView: View {
                         }
                         .frame(width: canvasSize.width, height: canvasSize.height)
                         .scaleEffect(zoomLevel)
+                        /*-------------------------------------------
                         .gesture(
                             DragGesture(minimumDistance: 0)
                                 .onChanged { value in
@@ -106,6 +124,7 @@ struct DrawingCanvasView: View {
                                 }
                         )
                         .clipped()
+                         -----------------------------------------------*/
                     }
                     .frame(
                         width: canvasSize.width * zoomLevel + 40,
@@ -251,6 +270,162 @@ struct DrawingCanvasView: View {
         )
     }
     
+    // MARK: - Mouse Event Handlers
+    //
+    // Mapping NSView events → drawing logic:
+    //
+    //   mouseDown    = first contact, set start point
+    //   mouseDragged = continuous update while button held
+    //   mouseUp      = commit / finalise
+    //
+    // Each mode uses the events differently:
+    //   Freehand    : down=start shape, drag=add points, up=commit shape
+    //   StraightLine: down=set start, drag=update end preview, up=commit
+    //   Square      : down=set start, drag=update corner preview, up=commit
+    //   CircleArc   : down=add point (3 clicks total), drag ignored, up unused
+    //   CubicBezier : handled separately in handleBezierGesture
+ 
+    private func handleMouseDown(at location: CGPoint) {
+        currentCoordinates = location
+ 
+        switch interactionMode {
+        case .draw:
+            switch selectedDrawingMode {
+            case .freehand:
+                currentShape = Shape(type: .freehand)
+                currentShape?.points.append(location)
+ 
+            case .straightLine:
+                temporaryShape = TemporaryShape(mode: .straightLine, points: [location, location])
+ 
+            case .square:
+                temporaryShape = TemporaryShape(mode: .square, points: [location, location])
+ 
+            case .circleArc:
+                // Each click adds one point; three clicks complete the arc
+                if temporaryShape == nil {
+                    temporaryShape = TemporaryShape(mode: .circleArc, points: [location])
+                } else if temporaryShape!.points.count == 1 {
+                    temporaryShape?.points.append(location)
+                } else if temporaryShape!.points.count == 2 {
+                    temporaryShape?.points.append(location)
+                    if let arc = calculateCircleArc(points: temporaryShape!.points) {
+                        shapes.append(arc)
+                    }
+                    temporaryShape = nil
+                }
+ 
+            case .cubicBezier:
+                break
+            }
+ 
+        case .select:
+            // Start selection / find handle
+            if editMode == .resize,
+               let shapeID = selectedShapeID,
+               let shape = shapes.first(where: { $0.id == shapeID }),
+               let handle = ResizeHandle.findHandle(at: location, for: shape) {
+                activeResizeHandle = handle
+                dragStartPoint = location
+                if let index = shapes.firstIndex(where: { $0.id == shapeID }) {
+                    originalShape = shapes[index]
+                }
+            } else if let foundShape = HitTesting.findShape(at: location, in: shapes) {
+                selectedShapeID = foundShape.id
+                dragStartPoint = location
+                if let index = shapes.firstIndex(where: { $0.id == foundShape.id }) {
+                    originalShape = shapes[index]
+                }
+            } else {
+                selectedShapeID = nil
+                dragStartPoint = nil
+            }
+        }
+    }
+ 
+    private func handleMouseDragged(at location: CGPoint) {
+        currentCoordinates = location
+ 
+        switch interactionMode {
+        case .draw:
+            switch selectedDrawingMode {
+            case .freehand:
+                currentShape?.points.append(location)
+ 
+            case .straightLine:
+                if temporaryShape != nil {
+                    temporaryShape?.points = [temporaryShape!.points[0], location]
+                }
+ 
+            case .square:
+                if temporaryShape != nil {
+                    temporaryShape?.points = [temporaryShape!.points[0], location]
+                }
+ 
+            case .circleArc:
+                break   // circleArc uses clicks only, drag ignored
+ 
+            case .cubicBezier:
+                break
+            }
+ 
+        case .select:
+            guard dragStartPoint != nil else { return }
+            if activeResizeHandle != nil {
+                handleShapeResize(to: location)
+            } else if editMode == .move {
+                handleShapeMove(to: location)
+            }
+        }
+    }
+ 
+    private func handleMouseUp(at location: CGPoint) {
+        switch interactionMode {
+        case .draw:
+            switch selectedDrawingMode {
+            case .freehand:
+                if let shape = currentShape, !shape.points.isEmpty {
+                    shapes.append(shape)
+                }
+                currentShape = nil
+ 
+            case .straightLine:
+                if let temp = temporaryShape, temp.points.count == 2 {
+                    var shape = Shape(type: .straightLine)
+                    shape.points = temp.points
+                    shapes.append(shape)
+                    temporaryShape = nil
+                }
+ 
+            case .square:
+                if let temp = temporaryShape, temp.points.count == 2, let rect = temp.rect {
+                    var shape = Shape(type: .rectangle)
+                    shape.points = [
+                        CGPoint(x: rect.minX, y: rect.minY),
+                        CGPoint(x: rect.maxX, y: rect.minY),
+                        CGPoint(x: rect.maxX, y: rect.maxY),
+                        CGPoint(x: rect.minX, y: rect.maxY)
+                    ]
+                    shapes.append(shape)
+                    temporaryShape = nil
+                }
+ 
+            case .circleArc:
+                break   // committed on mouseDown
+ 
+            case .cubicBezier:
+                break
+            }
+ 
+        case .select:
+            dragStartPoint = nil
+            originalShape = nil
+            activeResizeHandle = nil
+        }
+ 
+        mouseDownLocation = nil
+    }
+ 
     // MARK: - Gesture Handling
     
     enum GesturePhase {

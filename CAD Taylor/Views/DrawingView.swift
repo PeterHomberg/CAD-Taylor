@@ -16,7 +16,9 @@ struct DrawingView: NSViewRepresentable {
 
     // callback for mouse move
     var onMouseMoved: ((CGPoint) -> Void)?
-    
+    var onMouseDown:    ((CGPoint) -> Void)?
+    var onMouseDragged: ((CGPoint) -> Void)?
+    var onMouseUp:      ((CGPoint) -> Void)?
 
     func makeNSView(context: Context) -> DrawingNSView {
         let view = DrawingNSView()
@@ -24,6 +26,10 @@ struct DrawingView: NSViewRepresentable {
         view.currentShape = currentShape
         view.temporaryShape = temporaryShape
         view.onMouseMoved = onMouseMoved
+        view.onMouseDown    = onMouseDown
+        view.onMouseDragged = onMouseDragged
+        view.onMouseUp      = onMouseUp
+
         return view
     }
 
@@ -32,7 +38,10 @@ struct DrawingView: NSViewRepresentable {
         nsView.currentShape = currentShape
         nsView.temporaryShape = temporaryShape
         nsView.onMouseMoved = onMouseMoved
-
+        nsView.onMouseDown    = onMouseDown
+        nsView.onMouseDragged = onMouseDragged
+        nsView.onMouseUp      = onMouseUp
+        
         // Canvas-Größe synchronisieren
         DispatchQueue.main.async {
             let newSize = nsView.bounds.size
@@ -58,13 +67,39 @@ class DrawingNSView: NSView {
     override var isFlipped: Bool { true }   // Koordinatenursprung oben-links, Y wächst nach unten
     override var acceptsFirstResponder: Bool {true}
     
-    // callback for mouse move
+    // callback for mouse events
     var onMouseMoved: ((CGPoint) -> Void)?
+    var onMouseDown:    ((CGPoint) -> Void)?
+    var onMouseDragged: ((CGPoint) -> Void)?
+    var onMouseUp:      ((CGPoint) -> Void)?
+    
+    
+    
     override func mouseMoved(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
-        let flipped = CGPoint(x: location.x, y: bounds.height - location.y)
-        onMouseMoved?(flipped)
+        onMouseMoved?(location)
     }
+    // Click pressed down
+    override func mouseDown(with event: NSEvent) {
+        let location = convert(event.locationInWindow, from: nil)
+        onMouseDown?(location)
+    }
+    // Dragged while button held
+    override func mouseDragged(with event: NSEvent) {
+        let location = convert(event.locationInWindow, from: nil)
+        onMouseDragged?(location)
+    }
+    // Button released
+    override func mouseUp(with event: NSEvent) {
+        let location = convert(event.locationInWindow, from: nil)
+        onMouseUp?(location)
+    }
+/*--------------------------------------------------------------------
+    private func flipped(_ event: NSEvent) -> CGPoint {
+        let p = convert(event.locationInWindow, from: nil)
+        return CGPoint(x: p.x, y: bounds.height - p.y)
+    }
+----------------------------------------------------------------------*/
     // MARK: draw
 
     override func draw(_ dirtyRect: NSRect) {
