@@ -18,7 +18,7 @@ struct DrawingCanvasView: View {
     // Interaction modes
     @State private var interactionMode: InteractionMode = .draw
     @State private var editMode: EditMode = .move
-    @State private var selectedDrawingMode: DrawingMode = .freehand
+    //@State private var selectedDrawingMode: DrawingMode = .freehand
     
     // Drag state for editing
     @State private var dragStartPoint: CGPoint?
@@ -27,13 +27,14 @@ struct DrawingCanvasView: View {
     
     // UI state
     @State private var currentCoordinates = CGPoint.zero
+    
     //@State private var canvasSize = CGSize(width: 210, height: 297)
     @State private var canvasSize = DrawingCanvasView.a4Size
     @State private var showCoordinates = true
     @State private var zoomLevel: CGFloat = 1.0
     @State private var mouseDownLocation: CGPoint?
     @Binding var showInMillimeters: Bool
-    
+    @State var oldPoint: CGPoint = .zero
     @StateObject var model = DrawingModel()
     var body: some View {
         HStack(spacing: 0) {
@@ -71,9 +72,8 @@ struct DrawingCanvasView: View {
                             DrawingView(
                                 model: model,
                                 shapes: shapes,
-                                currentShape: currentShape,
-                                temporaryShape: temporaryShape,
                                 canvasSize: $canvasSize,
+                                
                                 
                                 onMouseMoved:{ location in
                                     // Koordinaten direkt übernehmen (kein zoomLevel-Offset nötig,
@@ -82,7 +82,15 @@ struct DrawingCanvasView: View {
                                         x: location.x / zoomLevel,
                                         y: location.y / zoomLevel
                                     )
-                                    currentCoordinates = adjustedLocation
+
+                                    currentCoordinates = model.coordinate
+                                    /*
+                                    if location != oldPoint {
+                                        print("DrawingCanvasView mouseMoved: \(model.coordinate)")
+                                        oldPoint = model.coordinate
+                                    }
+                                     */
+
                                 },
                                 onMouseDown: { location in
                                     let adjusted = CGPoint(x: location.x / zoomLevel,
@@ -108,26 +116,6 @@ struct DrawingCanvasView: View {
                         }
                         .frame(width: canvasSize.width, height: canvasSize.height)
                         .scaleEffect(zoomLevel)
-                        /*-------------------------------------------
-                        .gesture(
-                            DragGesture(minimumDistance: 0)
-                                .onChanged { value in
-                                    handleGesture(
-                                        location: value.location,
-                                        phase: .changed,
-                                        canvasSize: canvasSize
-                                    )
-                                }
-                                .onEnded { value in
-                                    handleGesture(
-                                        location: value.location,
-                                        phase: .ended,
-                                        canvasSize: canvasSize
-                                    )
-                                }
-                        )
-                        .clipped()
-                         -----------------------------------------------*/
                     }
                     .frame(
                         width: canvasSize.width * zoomLevel + 40,
@@ -241,7 +229,8 @@ struct DrawingCanvasView: View {
             // Right sidebar with drawing tools
             if interactionMode == .draw {
                 DrawingToolbar(
-                    selectedMode: $selectedDrawingMode,
+                    //selectedMode: $selectedDrawingMode,
+                    selectedMode: $model.selectedDrawingMode,
                     shapes: $shapes,
                     showInMillimeters: $showInMillimeters,
                     model: model,
@@ -295,35 +284,7 @@ struct DrawingCanvasView: View {
  
         switch interactionMode {
         case .draw:
-            switch selectedDrawingMode {
-            case .freehand:
-                currentShape = Shape(type: .freehand)
-                currentShape?.points.append(location)
- 
-            case .straightLine:
-                temporaryShape = TemporaryShape(mode: .straightLine, points: [location, location])
- 
-            case .square:
-                temporaryShape = TemporaryShape(mode: .square, points: [location, location])
- 
-            case .circleArc:
-                // Each click adds one point; three clicks complete the arc
-                if temporaryShape == nil {
-                    temporaryShape = TemporaryShape(mode: .circleArc, points: [location])
-                } else if temporaryShape!.points.count == 1 {
-                    temporaryShape?.points.append(location)
-                } else if temporaryShape!.points.count == 2 {
-                    temporaryShape?.points.append(location)
-                    if let arc = calculateCircleArc(points: temporaryShape!.points) {
-                        shapes.append(arc)
-                    }
-                    temporaryShape = nil
-                }
- 
-            case .cubicBezier:
-                break
-            }
- 
+            break
         case .select:
             // Start selection / find handle
             if editMode == .resize,
@@ -353,27 +314,7 @@ struct DrawingCanvasView: View {
  
         switch interactionMode {
         case .draw:
-            switch selectedDrawingMode {
-            case .freehand:
-                currentShape?.points.append(location)
- 
-            case .straightLine:
-                if temporaryShape != nil {
-                    temporaryShape?.points = [temporaryShape!.points[0], location]
-                }
- 
-            case .square:
-                if temporaryShape != nil {
-                    temporaryShape?.points = [temporaryShape!.points[0], location]
-                }
- 
-            case .circleArc:
-                break   // circleArc uses clicks only, drag ignored
- 
-            case .cubicBezier:
-                break
-            }
- 
+            break
         case .select:
             guard dragStartPoint != nil else { return }
             if activeResizeHandle != nil {
@@ -384,44 +325,42 @@ struct DrawingCanvasView: View {
         }
     }
  
+    private func commitShape() {
+        switch model.selectedDrawingMode {
+        case .freehand:
+            if let temp = model.shape, temp.type == .freehand &&
+                                        temp.points.count > 0 {
+                shapes.append(temp)
+            }
+        case .straightLine:
+            if let temp = model.shape, model.shape?.points.count == 2 {
+                shapes.append(temp)
+                temporaryShape = nil
+            }
+
+        case .square:
+            if let shape = model.shape, model.shape?.points.count == 4 {
+                shapes.append(shape)
+                temporaryShape = nil
+            }
+
+        case .circleArc:
+            if let temp = model.shape, model.shape?.type == .circleArc &&
+                                        model.shape?.points.count == 3{
+                shapes.append(temp)
+                temporaryShape = nil
+            }
+
+
+        case .cubicBezier:
+            break
+        }
+
+    }
     private func handleMouseUp(at location: CGPoint) {
         switch interactionMode {
         case .draw:
-            switch selectedDrawingMode {
-            case .freehand:
-                if let shape = currentShape, !shape.points.isEmpty {
-                    shapes.append(shape)
-                }
-                currentShape = nil
- 
-            case .straightLine:
-                if let temp = temporaryShape, temp.points.count == 2 {
-                    var shape = Shape(type: .straightLine)
-                    shape.points = temp.points
-                    shapes.append(shape)
-                    temporaryShape = nil
-                }
- 
-            case .square:
-                if let temp = temporaryShape, temp.points.count == 2, let rect = temp.rect {
-                    var shape = Shape(type: .rectangle)
-                    shape.points = [
-                        CGPoint(x: rect.minX, y: rect.minY),
-                        CGPoint(x: rect.maxX, y: rect.minY),
-                        CGPoint(x: rect.maxX, y: rect.maxY),
-                        CGPoint(x: rect.minX, y: rect.maxY)
-                    ]
-                    shapes.append(shape)
-                    temporaryShape = nil
-                }
- 
-            case .circleArc:
-                break   // committed on mouseDown
- 
-            case .cubicBezier:
-                break
-            }
- 
+            commitShape()
         case .select:
             dragStartPoint = nil
             originalShape = nil
@@ -431,205 +370,6 @@ struct DrawingCanvasView: View {
         mouseDownLocation = nil
     }
  
-    // MARK: - Gesture Handling
-    
-    enum GesturePhase {
-        case changed, ended
-    }
-    
-    private func handleGesture(location: CGPoint, phase: GesturePhase, canvasSize: CGSize) {
-        let adjustedLocation = CGPoint(
-                x: location.x / zoomLevel,
-                y: location.y / zoomLevel
-            )
-        switch interactionMode {
-        case .draw:
-            if phase == .changed {
-                handleDrawing(at: adjustedLocation)
-            } else {
-                handleDrawingEnd(at: adjustedLocation)
-            }
-            
-        case .select:
-            if phase == .changed {
-                handleSelection(at: adjustedLocation)
-            } else {
-                handleSelectionEnd(at: adjustedLocation)
-            }
-        }
-    }
-    
-    // MARK: - Drawing Mode Logic
-    
-    private func handleDrawing(at location: CGPoint) {
-        currentCoordinates = location
-        
-        switch selectedDrawingMode {
-        case .freehand:
-            if currentShape == nil {
-                currentShape = Shape(type: .freehand)
-            }
-            currentShape?.points.append(location)
-            
-        case .straightLine:
-            if temporaryShape == nil {
-                temporaryShape = TemporaryShape(mode: .straightLine, points: [location])
-            } else {
-                temporaryShape?.points = [temporaryShape!.points[0], location]
-            }
-            
-        case .square:
-            if temporaryShape == nil {
-                temporaryShape = TemporaryShape(mode: .square, points: [location])
-            } else {
-                temporaryShape?.points = [temporaryShape!.points[0], location]
-            }
-            
-        case .circleArc:
-            break
-        case .cubicBezier:
-            break
-        }
-    }
-    
-    private func handleDrawingEnd(at location: CGPoint) {
-        switch selectedDrawingMode {
-        case .freehand:
-            if let shape = currentShape, !shape.points.isEmpty {
-                shapes.append(shape)
-            }
-            currentShape = nil
-            
-        case .straightLine:
-            if let temp = temporaryShape, temp.points.count == 2 {
-                var shape = Shape(type: .straightLine)
-                shape.points = temp.points
-                shapes.append(shape)
-                temporaryShape = nil
-            }
-            
-        case .square:
-            if let temp = temporaryShape, temp.points.count == 2, let rect = temp.rect {
-                var shape = Shape(type: .rectangle)
-                // 4 Eckpunkte im Uhrzeigersinn
-                shape.points = [
-                    CGPoint(x: rect.minX, y: rect.minY),
-                    CGPoint(x: rect.maxX, y: rect.minY),
-                    CGPoint(x: rect.maxX, y: rect.maxY),
-                    CGPoint(x: rect.minX, y: rect.maxY)
-                ]
-                shapes.append(shape)
-                temporaryShape = nil
-            }
-            
-        case .circleArc:
-            if temporaryShape == nil {
-                temporaryShape = TemporaryShape(mode: .circleArc, points: [location])
-            } else if temporaryShape!.points.count == 1 {
-                temporaryShape?.points.append(location)
-            } else if temporaryShape!.points.count == 2 {
-                temporaryShape?.points.append(location)
-                if let arc = calculateCircleArc(points: temporaryShape!.points) {
-                    shapes.append(arc)
-                }
-                temporaryShape = nil
-            }
-        case .cubicBezier:
-            break
-        }
-    }
-    
-    private func calculateCircleArc(points: [CGPoint]) -> Shape? {
-        guard points.count == 3 else { return nil }
-        
-        let p1 = points[0]
-        let p2 = points[1]
-        let p3 = points[2]
-        
-        let d = 2 * (p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y))
-        guard abs(d) > 0.001 else { return nil }
-        
-        let ux = ((p1.x * p1.x + p1.y * p1.y) * (p2.y - p3.y) +
-                  (p2.x * p2.x + p2.y * p2.y) * (p3.y - p1.y) +
-                  (p3.x * p3.x + p3.y * p3.y) * (p1.y - p2.y)) / d
-        
-        let uy = ((p1.x * p1.x + p1.y * p1.y) * (p3.x - p2.x) +
-                  (p2.x * p2.x + p2.y * p2.y) * (p1.x - p3.x) +
-                  (p3.x * p3.x + p3.y * p3.y) * (p2.x - p1.x)) / d
-        
-        let center = CGPoint(x: ux, y: uy)
-        let radius = sqrt(pow(p1.x - center.x, 2) + pow(p1.y - center.y, 2))
-        
-        let angle1 = atan2(p1.y - center.y, p1.x - center.x)
-        let angle3 = atan2(p3.y - center.y, p3.x - center.x)
-        
-        var arcPoints: [CGPoint] = []
-        let segments = 50
-        
-        for i in 0...segments {
-            let t = CGFloat(i) / CGFloat(segments)
-            let angle = angle1 + (angle3 - angle1) * t
-            let x = center.x + radius * cos(angle)
-            let y = center.y + radius * sin(angle)
-            arcPoints.append(CGPoint(x: x, y: y))
-        }
-        
-        var shape = Shape(type: .circleArc)
-        shape.points = arcPoints
-        return shape
-    }
-    
-    // MARK: - Selection Mode Logic (Phase 2, 3 & 4)
-    
-    private func handleSelection(at location: CGPoint) {
-        currentCoordinates = location
-        
-        if dragStartPoint == nil {
-            // Erster Klick: Prüfe ob ein Handle geklickt wurde (Phase 4)
-            if editMode == .resize,
-               let shapeID = selectedShapeID,
-               let shape = shapes.first(where: { $0.id == shapeID }) {
-                
-                // Versuche einen Resize-Handle zu finden
-                if let handle = ResizeHandle.findHandle(at: location, for: shape) {
-                    activeResizeHandle = handle
-                    dragStartPoint = location
-                    
-                    if let index = shapes.firstIndex(where: { $0.id == shapeID }) {
-                        originalShape = shapes[index]
-                    }
-                    return
-                }
-            }
-            
-            // Kein Handle: Shape suchen und auswählen
-            if let foundShape = HitTesting.findShape(at: location, in: shapes) {
-                selectedShapeID = foundShape.id
-                dragStartPoint = location
-                
-                // Original Shape für Undo speichern
-                if let index = shapes.firstIndex(where: { $0.id == foundShape.id }) {
-                    originalShape = shapes[index]
-                }
-            } else {
-                // Klick ins Leere: Deselect
-                selectedShapeID = nil
-            }
-        } else {
-            // Drag: Shape bearbeiten
-            if activeResizeHandle != nil {
-                handleShapeResize(to: location)
-            } else if editMode == .move {
-                handleShapeMove(to: location)
-            }
-        }
-    }
-    
-    private func handleSelectionEnd(at location: CGPoint) {
-        dragStartPoint = nil
-        originalShape = nil
-        activeResizeHandle = nil
-    }
     
     private func handleShapeMove(to location: CGPoint) {
         guard let shapeID = selectedShapeID,
@@ -681,9 +421,6 @@ struct DrawingCanvasView: View {
     
     private func exportPDF() {
         // Convert shapes to lines, preserving type information via point count
-        let lines = shapes.map { shape in
-            Line(points: shape.points, color: shape.color, width: shape.width)
-        }
         
         guard let pdf = PDFExporter(pageSize: canvasSize) else {
             print("Konnte pdf nicht erstellen")
@@ -727,7 +464,7 @@ struct DrawingCanvasView: View {
         print("commitBezierShape: shapes.count=\(shapes.count), last type=\(shapes.last!.type)")
         model.clear()
         model.bezierMode = false        // ← triggers clean re-render with updated shapes
-        selectedDrawingMode = .freehand // ← optional: switch tool back
+        model.selectedDrawingMode = .freehand // ← optional: switch tool back
 
     }
     
