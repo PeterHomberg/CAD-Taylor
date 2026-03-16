@@ -74,7 +74,6 @@ struct DrawingCanvasView: View {
                                 shapes: shapes,
                                 canvasSize: $canvasSize,
                                 
-                                
                                 onMouseMoved:{ location in
                                     // Koordinaten direkt übernehmen (kein zoomLevel-Offset nötig,
                                     // da der Canvas selbst skaliert wird)
@@ -107,7 +106,11 @@ struct DrawingCanvasView: View {
                                      let adjusted = CGPoint(x: location.x / zoomLevel,
                                                             y: location.y / zoomLevel)
                                      handleMouseUp(at: adjusted)
-                                 }
+                                 },
+                                onShapeCommitted: { shape in
+                                        shapes.append(shape)       // directly append — no commitShape() needed
+                                }
+
                             )
                             if let selectedID = selectedShapeID,
                                let shape = shapes.first(where: { $0.id == selectedID }) {
@@ -324,7 +327,7 @@ struct DrawingCanvasView: View {
             }
         }
     }
- 
+    /*
     private func commitShape() {
         switch model.selectedDrawingMode {
         case .freehand:
@@ -357,10 +360,12 @@ struct DrawingCanvasView: View {
         }
 
     }
+     */
     private func handleMouseUp(at location: CGPoint) {
         switch interactionMode {
         case .draw:
-            commitShape()
+            break
+            //commitShape()
         case .select:
             dragStartPoint = nil
             originalShape = nil

@@ -21,7 +21,6 @@ class DrawingModel: ObservableObject {
     @Published var bezierMode: Bool = false
     @Published var coordinate: CGPoint = .zero
     @Published var selectedDrawingMode: DrawingMode = .freehand
-    @Published var shape: Shape?
     func clear() {
         print(" C L E A R")
         bezierSegments = []

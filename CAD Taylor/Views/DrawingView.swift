@@ -9,7 +9,6 @@ import AppKit
 
 protocol DrawingViewDelegate: AnyObject {
     func drawingView(_ drawingView: DrawingNSView,  newCoordinate: CGPoint)
-    func setShape(_ drawingView: DrawingNSView,  shape: Shape)
 }
 
 // MARK: - SwiftUI-Wrapper (NSViewRepresentable)
@@ -28,9 +27,6 @@ struct DrawingView: NSViewRepresentable {
         
         func drawingView(_ drawingView: DrawingNSView,  newCoordinate: CGPoint) {
             model.coordinate = newCoordinate
-        }
-        func setShape(_ drawingView: DrawingNSView, shape: Shape) {
-            model.shape = shape
         }
         
     }
@@ -54,15 +50,20 @@ struct DrawingView: NSViewRepresentable {
     var onMouseDown:    ((CGPoint) -> Void)?
     var onMouseDragged: ((CGPoint) -> Void)?
     var onMouseUp:      ((CGPoint) -> Void)?
+    var onShapeCommitted: ((Shape) -> Void)?
 
     func makeNSView(context: Context) -> DrawingNSView {
         let view = DrawingNSView(bezierSegments: model.bezierSegments)
         view.shapes = shapes
+        view.onShapeCommitted = { shape in
+                // This closure runs in DrawingCanvasView's context
+        }
         view.onMouseMoved = onMouseMoved
         view.onMouseDown    = onMouseDown
         view.onMouseDragged = onMouseDragged
         view.onMouseUp      = onMouseUp
         view.bezierMode = model.bezierMode
+        view.onShapeCommitted = onShapeCommitted
         // Push any NSView-side changes back to the model immediately,
         // so updateNSView never overwrites them with stale data.
         view.onSegmentsChanged = { [weak model] segments in
@@ -125,6 +126,9 @@ class DrawingNSView: NSView {
     var onMouseDown:    ((CGPoint) -> Void)?
     var onMouseDragged: ((CGPoint) -> Void)?
     var onMouseUp:      ((CGPoint) -> Void)?
+    
+    var onShapeCommitted: ((Shape) -> Void)?
+    
     
     // Bezier elements
     var bezierSegments: [BezierSegment] = []{
@@ -234,8 +238,8 @@ class DrawingNSView: NSView {
                             temporaryShape?.points.append(location)
                         }
                         //print("Circle Arc click 3: \(location)")
-                        let arcShape = Shape(type: .circleArc, points: temporaryShape!.points)
-                        delegate?.setShape(self, shape: arcShape)
+                        let shape = Shape(type: .circleArc, points: temporaryShape!.points)
+                        onShapeCommitted?(shape)
                         temporaryShape = nil
                         arcClickCount = 0   // reset for next arc
                     default:
@@ -316,7 +320,7 @@ class DrawingNSView: NSView {
             if let temp = temporaryShape, temp.points.count == 2 {
                 var shape = Shape(type: .straightLine)
                 shape.points = temp.points
-                delegate?.setShape(self, shape: shape)
+                onShapeCommitted?(shape)
                 temporaryShape = nil
             }
             case .none:
@@ -325,7 +329,7 @@ class DrawingNSView: NSView {
                 if let temp = temporaryShape, temp.points.count > 0 {
                     var shape = Shape(type: .freehand)
                     shape.points = temp.points
-                    delegate?.setShape(self, shape: shape)
+                    onShapeCommitted?(shape)
                     temporaryShape = nil
                 }
             case .some(.circleArc):
@@ -339,7 +343,7 @@ class DrawingNSView: NSView {
                     CGPoint(x: rect.maxX, y: rect.maxY),
                     CGPoint(x: rect.minX, y: rect.maxY)
                 ]
-                delegate?.setShape(self, shape: shape)
+                onShapeCommitted?(shape)
                 temporaryShape = nil
             }
 
