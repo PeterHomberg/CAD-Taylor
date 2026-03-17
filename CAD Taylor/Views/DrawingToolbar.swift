@@ -7,7 +7,6 @@
 import SwiftUI
 
 struct DrawingToolbar: View {
-    @Binding var selectedMode: DrawingMode
     @Binding var shapes: [Shape]
     @Binding var showInMillimeters: Bool
     @ObservedObject var model: DrawingModel
@@ -29,10 +28,9 @@ struct DrawingToolbar: View {
                 ToolButton(
                     title: "Freehand",
                     icon: "pencil.tip",
-                    isSelected: selectedMode == .freehand
+                    isSelected: model.selectedDrawingMode == .freehand
                 ) {
-                    selectedMode = .freehand
-                    model.bezierMode = false
+                    model.selectedDrawingMode = .freehand
                 }
                 
                 Divider()
@@ -41,10 +39,9 @@ struct DrawingToolbar: View {
                 ToolButton(
                     title: "Straight Line",
                     icon: "line.diagonal",
-                    isSelected: selectedMode == .straightLine
+                    isSelected: model.selectedDrawingMode == .straightLine
                 ) {
-                    selectedMode = .straightLine
-                    model.bezierMode = false
+                    model.selectedDrawingMode = .straightLine
                 }
                 
                 Text("Click start point, then end point")
@@ -60,10 +57,9 @@ struct DrawingToolbar: View {
                 ToolButton(
                     title: "Circle Arc",
                     icon: "circle.lefthalf.filled",
-                    isSelected: selectedMode == .circleArc
+                    isSelected: model.selectedDrawingMode == .circleArc
                 ) {
-                    selectedMode = .circleArc
-                    model.bezierMode = false
+                    model.selectedDrawingMode = .circleArc
                 }
                 
                 Text("Click three points to define arc")
@@ -77,10 +73,9 @@ struct DrawingToolbar: View {
                 ToolButton(
                     title: "Square",
                     icon: "square",
-                    isSelected: selectedMode == .square
+                    isSelected: model.selectedDrawingMode == .square
                 ) {
-                    selectedMode = .square
-                    model.bezierMode = false
+                    model.selectedDrawingMode = .square
                 }
                 
                 Text("Click top-left, then drag to bottom-right")
@@ -94,9 +89,8 @@ struct DrawingToolbar: View {
             VStack {
                 // Kubische Bézierkurve (NEU)
                 ToolButton(title: "Cubic Bézier", icon: "scribble.variable",
-                           isSelected: selectedMode == .cubicBezier) {
-                    selectedMode = .cubicBezier
-                    model.bezierMode = true
+                           isSelected: model.selectedDrawingMode == .cubicBezier) {
+                    model.selectedDrawingMode = .cubicBezier
                 }
                 Text("Click to place points · Drag to pull handles · Double-click to finish")
                     .font(.caption).foregroundColor(.gray).padding(.leading, 8)
@@ -113,7 +107,7 @@ struct DrawingToolbar: View {
 
             
             // Coordinate input for rectangle (NEW!)
-            if selectedMode == .square {
+            if model.selectedDrawingMode == .square {
                 if let rectangle = lastRectangle {
                     CoordinateInputSection(
                         shape: rectangle,

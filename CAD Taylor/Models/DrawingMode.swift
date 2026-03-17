@@ -27,6 +27,7 @@ enum DrawingMode {
 struct TemporaryShape {
     var mode: DrawingMode
     var points: [CGPoint] = []
+    var bezierSegments: [BezierSegment] = []
     var isComplete: Bool = false
     
     // Computed rectangle for square mode

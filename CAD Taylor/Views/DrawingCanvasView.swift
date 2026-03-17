@@ -16,7 +16,7 @@ struct DrawingCanvasView: View {
     @State private var selectedShapeID: UUID?
     
     // Interaction modes
-    @State private var interactionMode: InteractionMode = .draw
+    //@State private var interactionMode: InteractionMode = .draw
     @State private var editMode: EditMode = .move
     //@State private var selectedDrawingMode: DrawingMode = .freehand
     
@@ -131,21 +131,21 @@ struct DrawingCanvasView: View {
                 HStack {
                     // Mode toggle buttons
                     HStack(spacing: 8) {
-                        Button(action: { interactionMode = .draw }) {
+                        Button(action: { model.interactionMode = .draw }) {
                             HStack {
                                 Image(systemName: "pencil")
                                 Text("Draw")
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(interactionMode == .draw ? Color.blue : Color.gray.opacity(0.3))
+                            .background(model.interactionMode == .draw ? Color.blue : Color.gray.opacity(0.3))
                             .foregroundColor(.white)
                             .cornerRadius(6)
                         }
                         .buttonStyle(PlainButtonStyle())
                         
                         Button(action: {
-                            interactionMode = .select
+                            model.interactionMode = .select
                             selectedShapeID = nil // Deselect when switching modes
                         }) {
                             HStack {
@@ -154,7 +154,7 @@ struct DrawingCanvasView: View {
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(interactionMode == .select ? Color.blue : Color.gray.opacity(0.3))
+                            .background(model.interactionMode == .select ? Color.blue : Color.gray.opacity(0.3))
                             .foregroundColor(.white)
                             .cornerRadius(6)
                         }
@@ -215,7 +215,7 @@ struct DrawingCanvasView: View {
                                 Text("Selected: \(shape.type.displayName)")
                                     .font(.system(size: 12, design: .monospaced))
                                     .foregroundColor(.blue)
-                            } else if interactionMode == .select {
+                            } else if model.interactionMode == .select {
                                 Text("Click to select a shape")
                                     .font(.system(size: 12))
                                     .foregroundColor(.gray)
@@ -230,10 +230,8 @@ struct DrawingCanvasView: View {
             .padding()
             
             // Right sidebar with drawing tools
-            if interactionMode == .draw {
+            if model.interactionMode == .draw {
                 DrawingToolbar(
-                    //selectedMode: $selectedDrawingMode,
-                    selectedMode: $model.selectedDrawingMode,
                     shapes: $shapes,
                     showInMillimeters: $showInMillimeters,
                     model: model,
@@ -285,7 +283,7 @@ struct DrawingCanvasView: View {
     private func handleMouseDown(at location: CGPoint) {
         currentCoordinates = location
  
-        switch interactionMode {
+        switch model.interactionMode {
         case .draw:
             break
         case .select:
@@ -302,9 +300,7 @@ struct DrawingCanvasView: View {
             } else if let foundShape = HitTesting.findShape(at: location, in: shapes) {
                 selectedShapeID = foundShape.id
                 dragStartPoint = location
-                if let index = shapes.firstIndex(where: { $0.id == foundShape.id }) {
-                    originalShape = shapes[index]
-                }
+                originalShape = foundShape
             } else {
                 selectedShapeID = nil
                 dragStartPoint = nil
@@ -315,7 +311,7 @@ struct DrawingCanvasView: View {
     private func handleMouseDragged(at location: CGPoint) {
         currentCoordinates = location
  
-        switch interactionMode {
+        switch model.interactionMode {
         case .draw:
             break
         case .select:
@@ -362,7 +358,7 @@ struct DrawingCanvasView: View {
     }
      */
     private func handleMouseUp(at location: CGPoint) {
-        switch interactionMode {
+        switch model.interactionMode {
         case .draw:
             break
             //commitShape()
@@ -468,7 +464,7 @@ struct DrawingCanvasView: View {
         shapes.append(shape)
         print("commitBezierShape: shapes.count=\(shapes.count), last type=\(shapes.last!.type)")
         model.clear()
-        model.bezierMode = false        // ← triggers clean re-render with updated shapes
+        model.clearTemporaryShape = true
         model.selectedDrawingMode = .freehand // ← optional: switch tool back
 
     }

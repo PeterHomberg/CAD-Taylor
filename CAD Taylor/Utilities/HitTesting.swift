@@ -12,8 +12,15 @@ struct HitTesting {
     static func findShape(at point: CGPoint, in shapes: [Shape], tolerance: CGFloat = 15) -> Shape? {
         // Rückwärts durchsuchen (zuletzt gezeichnete zuerst)
         for shape in shapes.reversed() {
-            if isPointNear(point, shape: shape, tolerance: tolerance) {
-                return shape
+            switch shape.type {
+            case.cubicBezier:
+                if isMouseNearBezier(mousePoint: point, segments: shape.bezierSegments) {
+                    return shape
+                }
+            default:
+                if isPointNear(point, shape: shape, tolerance: tolerance) {
+                    return shape
+                }
             }
         }
         return nil
@@ -42,6 +49,51 @@ struct HitTesting {
             return false // not yet implemented
         }
     }
+    static func hitTestBezierPoints(mousePosition: CGPoint, bezierSegments: [BezierSegment],   threshold: CGFloat = 10) -> HitResult? {
+        for(index,point) in bezierSegments.enumerated() {
+            if mousePosition.distance(to: point.curvePoint) < threshold {
+                return .curvePoint(index: index)
+            }
+            if point.controlPoint != .zero,
+               mousePosition.distance(to: point.controlPoint) < threshold{
+                return .controlPoint(index: index)
+            }
+            if point.controlPoint1 != .zero,
+               mousePosition.distance(to: point.controlPoint1) < threshold{
+                return .controlPoint1(index: index)
+            }
+
+        }
+        return nil
+    }
+
+    static func isMouseNearBezier(mousePoint: CGPoint,
+                           segments: [BezierSegment],
+                           threshold: CGFloat = 6.0) -> Bool {
+        guard segments.count > 1 else { return false }
+
+        for i in 1..<segments.count {
+            let p0 = segments[i-1].curvePoint
+            let p1 = segments[i-1].controlPoint
+            let p2 = segments[i-1].controlPoint1
+            let p3 = segments[i].curvePoint
+
+            let steps = 60
+            for step in 0...steps {
+                let t = CGFloat(step) / CGFloat(steps)
+                let mt = 1 - t
+                let x = mt*mt*mt*p0.x + 3*mt*mt*t*p1.x + 3*mt*t*t*p2.x + t*t*t*p3.x
+                let y = mt*mt*mt*p0.y + 3*mt*mt*t*p1.y + 3*mt*t*t*p2.y + t*t*t*p3.y
+                let sample = CGPoint(x: x, y: y)
+
+                if hypot(sample.x - mousePoint.x, sample.y - mousePoint.y) < threshold {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
     
     /// Berechnet Distanz von Punkt zu gerader Linie
     private static func distanceToStraightLine(_ point: CGPoint, shape: Shape) -> CGFloat {

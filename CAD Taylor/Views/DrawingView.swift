@@ -15,7 +15,7 @@ protocol DrawingViewDelegate: AnyObject {
 
 struct DrawingView: NSViewRepresentable {
     @ObservedObject var model: DrawingModel
-
+    
     
     // Coordinator to communicate NSView coordinates to SwiftUI views
     //**********************************************************************************************
@@ -33,7 +33,6 @@ struct DrawingView: NSViewRepresentable {
     func makeCoordinator() -> ViewNSDelegate {
         ViewNSDelegate(model: model)
     }
-
     
     
     
@@ -41,38 +40,40 @@ struct DrawingView: NSViewRepresentable {
     
     
     
-  //*************************************************************************************************
+    
+    //*************************************************************************************************
     let shapes: [Shape]
     @Binding var canvasSize: CGSize
-
+    
     // callback for mouse move
     var onMouseMoved: ((CGPoint) -> Void)?
     var onMouseDown:    ((CGPoint) -> Void)?
     var onMouseDragged: ((CGPoint) -> Void)?
     var onMouseUp:      ((CGPoint) -> Void)?
     var onShapeCommitted: ((Shape) -> Void)?
-
+    
     func makeNSView(context: Context) -> DrawingNSView {
         let view = DrawingNSView(bezierSegments: model.bezierSegments)
         view.shapes = shapes
         view.onShapeCommitted = { shape in
-                // This closure runs in DrawingCanvasView's context
+            // This closure runs in DrawingCanvasView's context
         }
         view.onMouseMoved = onMouseMoved
         view.onMouseDown    = onMouseDown
         view.onMouseDragged = onMouseDragged
         view.onMouseUp      = onMouseUp
-        view.bezierMode = model.bezierMode
+        view.selectedDrawingMode = model.selectedDrawingMode
+        view.interactionMode = model.interactionMode
         view.onShapeCommitted = onShapeCommitted
         // Push any NSView-side changes back to the model immediately,
         // so updateNSView never overwrites them with stale data.
         view.onSegmentsChanged = { [weak model] segments in
-          model?.bezierSegments = segments
+            model?.bezierSegments = segments
         }
         view.delegate = context.coordinator
         return view
     }
-
+    
     func updateNSView(_ nsView: DrawingNSView, context: Context) {
         nsView.shapes = shapes
         // Only overwrite temporaryShape if we're not mid-arc-input
@@ -89,10 +90,13 @@ struct DrawingView: NSViewRepresentable {
         }
         nsView.isUpdatingFromModel = false
         nsView.penMode = model.penMode
-        nsView.bezierMode = model.bezierMode
         nsView.selectedDrawingMode = model.selectedDrawingMode
-
+        nsView.interactionMode = model.interactionMode
         
+        if model.clearTemporaryShape {
+            nsView.temporaryShape = nil
+            model.clearTemporaryShape = false
+        }
         // Canvas-Größe synchronisieren
         DispatchQueue.main.async {
             let newSize = nsView.bounds.size
@@ -100,7 +104,7 @@ struct DrawingView: NSViewRepresentable {
                 canvasSize = newSize
             }
         }
-
+        
         nsView.needsDisplay = true
     }
 }
@@ -110,12 +114,13 @@ struct DrawingView: NSViewRepresentable {
 class DrawingNSView: NSView {
     weak var delegate: DrawingViewDelegate?
     var selectedDrawingMode: DrawingMode?
+    var interactionMode: InteractionMode = .draw
     var oldCount = 0
     var oldPoint: CGPoint = .zero
     // Daten – bei Änderung needsDisplay setzen
     var shapes: [Shape] = [] { didSet { needsDisplay = true } }
     var temporaryShape: TemporaryShape? { didSet { needsDisplay = true } }
-
+    
     var arcClickCount: Int = 0
     // Transparenter Hintergrund (der weiße Canvas liegt darunter)
     override var isFlipped: Bool { true }   // Koordinatenursprung oben-links, Y wächst nach unten
@@ -139,10 +144,10 @@ class DrawingNSView: NSView {
     }
     var onSegmentsChanged: (([BezierSegment]) -> Void)?
     var lastMousePosition: CGPoint = .zero
-
+    
     var isUpdatingFromModel = false
     var penMode: Bool = true
-    var bezierMode: Bool = false
+    //var bezierMode: Bool = false
     init(bezierSegments: [BezierSegment]) {
         self.bezierSegments = bezierSegments
         super.init(frame: .zero)
@@ -152,177 +157,184 @@ class DrawingNSView: NSView {
         self.bezierSegments = []
         super.init(coder: coder)
     }
-
+    
     override func viewDidMoveToWindow() {
         window?.acceptsMouseMovedEvents = true
         becomeFirstResponder()
     }
     var hitPoint: HitResult? = nil
-
+    
     override func mouseMoved(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
         
         /*
-        if location != oldPoint {
-            print("NSView mouseMoved: \(location)")
-            oldPoint = location
-        }
+         if location != oldPoint {
+         print("NSView mouseMoved: \(location)")
+         oldPoint = location
+         }
          */
         delegate?.drawingView(self, newCoordinate: location)
-        
-        if temporaryShape?.points.count == 3 && temporaryShape?.mode == .circleArc{
-            temporaryShape?.points[2] = location
-            needsDisplay = true
-        } else if temporaryShape?.mode == .circleArc && temporaryShape?.points.count == 2 {
-            temporaryShape?.points.append(location)
-            needsDisplay = true
+        if interactionMode == .draw {
+            if temporaryShape?.points.count == 3 && temporaryShape?.mode == .circleArc{
+                temporaryShape?.points[2] = location
+                needsDisplay = true
+            } else if temporaryShape?.mode == .circleArc && temporaryShape?.points.count == 2 {
+                temporaryShape?.points.append(location)
+                needsDisplay = true
+            }
         }
-        onMouseMoved?(location)
+        if interactionMode == .select {
+            onMouseMoved?(location)
+        }
+        
     }
     // Click pressed down
     override func mouseDown(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
-        if bezierMode{
-            if penMode == false {return}
-            let location = convert(event.locationInWindow, from: nil)
-            lastMousePosition = location
-            print("Mouse down at: \(location)")
-            hitPoint = hitTest(mousePosition: location)
-            if let hit = hitPoint {
-                switch hit {
-                case.curvePoint(let index):
-                    print("Hit curve point \(index)")
-                case .controlPoint(let index):
-                    print("Hit control point \(index)")
-                case .controlPoint1(let index):
-                    print("Hit control point1 \(index)")
-                }
-            } else {
-                print("Hit nothing")
-                let newBezierSegment = BezierSegment(curvePoint: lastMousePosition, controlPoint: .zero)
-                bezierSegments.append(newBezierSegment)
-                let cnt = bezierSegments.count
-                if cnt > 1 {
-                    bezierSegments[cnt-2].curvePoint1 = lastMousePosition
-                }
-            }
-
-            needsDisplay = true
-
-        }else { // back to DrawingCanvasView
+        if interactionMode == .draw {
             switch selectedDrawingMode{
-                case .straightLine:
-                    temporaryShape = TemporaryShape(mode: .straightLine, points: [location, location])
-                case .none:
+            case .straightLine:
+                temporaryShape = TemporaryShape(mode: .straightLine, points: [location, location])
+            case .freehand:
+                var temp = TemporaryShape(mode: .freehand)
+                temp.points.append(location)
+                temporaryShape = temp
+            case .circleArc:
+                arcClickCount += 1
+                switch arcClickCount {
+                case 1:
+                    temporaryShape = TemporaryShape(mode: .circleArc, points: [location])
+                    //print("Circle Arc click 1: \(location)")
+                case 2:
+                    if let temp = temporaryShape {
+                        temporaryShape?.points = [temp.points[0], location]
+                    }
+                    //print("Circle Arc click 2: \(location)")
+                case 3:
+                    // Replace the preview 3rd point with the actual click location
+                    if temporaryShape!.points.count == 3 {
+                        temporaryShape?.points[2] = location
+                    } else {
+                        temporaryShape?.points.append(location)
+                    }
+                    //print("Circle Arc click 3: \(location)")
+                    let shape = Shape(type: .circleArc, points: temporaryShape!.points)
+                    onShapeCommitted?(shape)
+                    temporaryShape = nil
+                    arcClickCount = 0   // reset for next arc
+                default:
                     break
-                case .some(.freehand):
-                    var temp = TemporaryShape(mode: .freehand)
-                    temp.points.append(location)
-                    temporaryShape = temp
-                case .some(.circleArc):
-                    arcClickCount += 1
-                    switch arcClickCount {
-                    case 1:
-                        temporaryShape = TemporaryShape(mode: .circleArc, points: [location])
-                       //print("Circle Arc click 1: \(location)")
-                    case 2:
-                        if let temp = temporaryShape {
-                            temporaryShape?.points = [temp.points[0], location]
-                        }
-                        //print("Circle Arc click 2: \(location)")
-                    case 3:
-                        // Replace the preview 3rd point with the actual click location
-                        if temporaryShape!.points.count == 3 {
-                            temporaryShape?.points[2] = location
-                        } else {
-                            temporaryShape?.points.append(location)
-                        }
-                        //print("Circle Arc click 3: \(location)")
-                        let shape = Shape(type: .circleArc, points: temporaryShape!.points)
-                        onShapeCommitted?(shape)
-                        temporaryShape = nil
-                        arcClickCount = 0   // reset for next arc
-                    default:
-                        break
+                } //switch arcClickCount
+                
+            case .square:
+                temporaryShape = TemporaryShape(mode: .square, points: [location, location])
+            case .cubicBezier:
+                if penMode == false {return}
+                let location = convert(event.locationInWindow, from: nil)
+                lastMousePosition = location
+                print("Mouse down at: \(location)")
+                hitPoint = HitTesting.hitTestBezierPoints(mousePosition: location, bezierSegments: bezierSegments)
+                if let hit = hitPoint {
+                    switch hit {
+                    case.curvePoint(let index):
+                        print("Hit curve point \(index)")
+                    case .controlPoint(let index):
+                        print("Hit control point \(index)")
+                    case .controlPoint1(let index):
+                        print("Hit control point1 \(index)")
+                    }
+                } else {
+                    print("Hit nothing")
+                    let newBezierSegment = BezierSegment(curvePoint: lastMousePosition, controlPoint: .zero)
+                    bezierSegments.append(newBezierSegment)
+                    let cnt = bezierSegments.count
+                    if cnt > 1 {
+                        bezierSegments[cnt-2].curvePoint1 = lastMousePosition
+                    }
+                    temporaryShape = TemporaryShape(mode: .cubicBezier, bezierSegments: bezierSegments)
                 }
-               case .some(.square):
-                    temporaryShape = TemporaryShape(mode: .square, points: [location, location])
-                case .some(.cubicBezier):
-                    break
-            }
+                
+                needsDisplay = true
+                
+            case .none:
+                break
+            } // switch selectedDrawingMode
+        }// if interactionMode == .draw
+        if interactionMode == .select {
             onMouseDown?(location)
         }
+        
     }
     // Dragged while button held
     override func mouseDragged(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
-        if bezierMode {
-            if penMode == false {return}
-
-            let location = convert(event.locationInWindow, from: nil)
-            //print("Dragging at: \(location)")
-            lastMousePosition = location
-            needsDisplay = true   // triggers draw(_:) again
-            let cnt = bezierSegments.count
-            if let hit = hitPoint {
-                switch hit {
-                case.curvePoint(let index):
-                    bezierSegments[index].curvePoint = location
-                    if bezierSegments.count > 1 {
-                        bezierSegments[bezierSegments.count-2].curvePoint1 = location
-                    }
-                    //print("Hit curve point \(index)")
-                case .controlPoint(let index):
-                    bezierSegments[index].controlPoint=location
-                    //print("Hit control point \(index)")
-                case .controlPoint1(let index):
-                    bezierSegments[index].controlPoint1 = location
-                    print("Hit control point1 \(index)")
-                }
-
-            } else {
-                if cnt > 0{
-                    bezierSegments[cnt-1].controlPoint = lastMousePosition
-                    if cnt > 1 {
-                        let mirrorControlPoint = createMirrorControlPoint(curvePoint: bezierSegments[cnt-1].curvePoint, controlPoint: bezierSegments[cnt-1].controlPoint)
-                        bezierSegments[cnt-2].controlPoint1 = mirrorControlPoint
-                    }
-                }
-            }
-
-        }else { // back to DrawingCanvasView
+        if interactionMode == .draw {
             //print("Mouse dragged  \(selectedDrawingMode ?? .freehand)")
             switch selectedDrawingMode{
             case .straightLine, .square:
-                    if let temp = temporaryShape {
-                        temporaryShape?.points = [temp.points[0], location]
-                        //print("Mouse Dragged   temp.points[0]: \(temp.points[0])  location: \(location)")
+                if let temp = temporaryShape {
+                    temporaryShape?.points = [temp.points[0], location]
+                    //print("Mouse Dragged   temp.points[0]: \(temp.points[0])  location: \(location)")
+                }
+            case .none:
+                break
+            case .some(.freehand):
+                temporaryShape?.points.append(location)
+                //print("Mouse Dragged .freehand  temp.points[0]: \(temporaryShape!)")
+            case .some(.circleArc):
+                break
+            case .some(.cubicBezier):
+                if penMode == false {return}
+                
+                let location = convert(event.locationInWindow, from: nil)
+                //print("Dragging at: \(location)")
+                lastMousePosition = location
+                needsDisplay = true   // triggers draw(_:) again
+                let cnt = bezierSegments.count
+                if let hit = hitPoint {
+                    switch hit {
+                    case.curvePoint(let index):
+                        bezierSegments[index].curvePoint = location
+                        if bezierSegments.count > 1 {
+                            bezierSegments[bezierSegments.count-2].curvePoint1 = location
+                        }
+                        //print("Hit curve point \(index)")
+                    case .controlPoint(let index):
+                        bezierSegments[index].controlPoint=location
+                        //print("Hit control point \(index)")
+                    case .controlPoint1(let index):
+                        bezierSegments[index].controlPoint1 = location
+                        print("Hit control point1 \(index)")
                     }
-                case .none:
-                    break
-                case .some(.freehand):
-                    temporaryShape?.points.append(location)
-                    //print("Mouse Dragged .freehand  temp.points[0]: \(temporaryShape!)")
-                case .some(.circleArc):
-                    break
-                case .some(.cubicBezier):
-                    break
+                    
+                } else {
+                    if cnt > 0{
+                        bezierSegments[cnt-1].controlPoint = lastMousePosition
+                        if cnt > 1 {
+                            let mirrorControlPoint = createMirrorControlPoint(curvePoint: bezierSegments[cnt-1].curvePoint, controlPoint: bezierSegments[cnt-1].controlPoint)
+                            bezierSegments[cnt-2].controlPoint1 = mirrorControlPoint
+                        }
+                    }
+                }
+                temporaryShape?.bezierSegments = bezierSegments
             }
-
+        }
+        if interactionMode == .select {
             onMouseDragged?(location)
         }
     }
     // Button released
     override func mouseUp(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
-        switch selectedDrawingMode{
+        if interactionMode == .draw {
+            switch selectedDrawingMode{
             case .straightLine:
-            if let temp = temporaryShape, temp.points.count == 2 {
-                var shape = Shape(type: .straightLine)
-                shape.points = temp.points
-                onShapeCommitted?(shape)
-                temporaryShape = nil
-            }
+                if let temp = temporaryShape, temp.points.count == 2 {
+                    var shape = Shape(type: .straightLine)
+                    shape.points = temp.points
+                    onShapeCommitted?(shape)
+                    temporaryShape = nil
+                }
             case .none:
                 break
             case .some(.freehand):
@@ -335,51 +347,38 @@ class DrawingNSView: NSView {
             case .some(.circleArc):
                 break
             case .some(.square):
-            if let temp = temporaryShape, temp.points.count == 2, let rect = temp.rect {
-                var shape = Shape(type: .rectangle)
-                shape.points = [
-                    CGPoint(x: rect.minX, y: rect.minY),
-                    CGPoint(x: rect.maxX, y: rect.minY),
-                    CGPoint(x: rect.maxX, y: rect.maxY),
-                    CGPoint(x: rect.minX, y: rect.maxY)
-                ]
-                onShapeCommitted?(shape)
-                temporaryShape = nil
-            }
-
+                if let temp = temporaryShape, temp.points.count == 2, let rect = temp.rect {
+                    var shape = Shape(type: .rectangle)
+                    shape.points = [
+                        CGPoint(x: rect.minX, y: rect.minY),
+                        CGPoint(x: rect.maxX, y: rect.minY),
+                        CGPoint(x: rect.maxX, y: rect.maxY),
+                        CGPoint(x: rect.minX, y: rect.maxY)
+                    ]
+                    onShapeCommitted?(shape)
+                    temporaryShape = nil
+                }
+                
             case .some(.cubicBezier):
                 break
+            }
+            
         }
-
-        onMouseUp?(location)
+        if interactionMode == .select {
+            onMouseUp?(location)
+        }
     }
-/*--------------------------------------------------------------------
-    private func flipped(_ event: NSEvent) -> CGPoint {
-        let p = convert(event.locationInWindow, from: nil)
-        return CGPoint(x: p.x, y: bounds.height - p.y)
-    }
-----------------------------------------------------------------------*/
+    /*--------------------------------------------------------------------
+     private func flipped(_ event: NSEvent) -> CGPoint {
+     let p = convert(event.locationInWindow, from: nil)
+     return CGPoint(x: p.x, y: bounds.height - p.y)
+     }
+     ----------------------------------------------------------------------*/
     // MARK: draw
-
+    
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         guard let ctx = NSGraphicsContext.current?.cgContext else { return }
-        if (bezierMode) {
-            if bezierSegments.count != oldCount {
-                print("bezierSegments.count: \(bezierSegments.count)")
-                oldCount = bezierSegments.count
-            }
-
-            if penMode {
-                for point in bezierSegments {
-                    point.draw(ctx: ctx)
-                }
-            }
-            if bezierSegments.count > 1 {
-                drawBezierCurve(ctx: ctx)
-            }
-
-        }
         // -------------------------------------------------------
         // 1. Fertige Shapes
         // -------------------------------------------------------
@@ -389,7 +388,7 @@ class DrawingNSView: NSView {
         // -------------------------------------------------------
         // 2. Temporary Shape
         // -------------------------------------------------------
-
+        
         if let temp = temporaryShape {
             drawTemporaryShape(ctx: ctx, temp: temp)
         }
@@ -402,62 +401,73 @@ class DrawingNSView: NSView {
         ctx.setLineDash(phase: 0, lengths: [6, 3])
         ctx.setLineCap(.round)
         ctx.setLineJoin(.round)
-
+        
         switch temp.mode {
-            case .freehand, .straightLine:
+        case .freehand, .straightLine:
             print("freehand points.count \(temp.points.count)")
-                if temp.points.count > 1 {
-                    ctx.move(to: temp.points[0])
-                    for point in temp.points.dropFirst() {
-                        ctx.addLine(to: point)
-                    }
-                    ctx.strokePath()
+            if temp.points.count > 1 {
+                ctx.move(to: temp.points[0])
+                for point in temp.points.dropFirst() {
+                    ctx.addLine(to: point)
                 }
-
-            case .circleArc:
-                ctx.setLineDash(phase: 0, lengths: [])
-                ctx.setFillColor(NSColor.white.cgColor)
-                for point in temp.points {
-                    let r: CGFloat = 4
-                    let ellipse = CGRect(x: point.x - r, y: point.y - r, width: r * 2, height: r * 2)
-                    ctx.fillEllipse(in: ellipse)
-                    ctx.strokeEllipse(in: ellipse)
-                }
-                if temp.points.count == 2 {
-                    ctx.move(to: temp.points[0])
-                    ctx.addLine(to: temp.points[1])
-                    ctx.strokePath()
-                }
-                if temp.points.count == 3 {
-                    ctx.move(to: temp.points[0])
-                    ctx.addLine(to: temp.points[1])   // center → radius point
-                    ctx.strokePath()
-                    ctx.move(to: temp.points[0])
-                    ctx.addLine(to: temp.points[2])   // center → mouse point
-                    ctx.strokePath()
-                    let (center, radius, startAngle, endAngle) = arcParameters(from: temp.points)
-                    // Angles are computed in flipped screen space (Y down), but CGContext lives in
-                    // Y-up space. The Y-flip mirrors all angles, reversing the sweep direction.
-                    // Swapping start/end compensates, and clockwise:false then correctly draws
-                    // the short arc counter-clockwise from points[1] to points[2].
-                    ctx.addArc(center: center, radius: radius,
-                               startAngle: endAngle, endAngle: startAngle,
-                               clockwise: false)
-                    ctx.strokePath()
-
-                }
-
-
-            case .square:
+                ctx.strokePath()
+            }
+            
+        case .circleArc:
+            ctx.setLineDash(phase: 0, lengths: [])
+            ctx.setFillColor(NSColor.white.cgColor)
+            for point in temp.points {
+                let r: CGFloat = 4
+                let ellipse = CGRect(x: point.x - r, y: point.y - r, width: r * 2, height: r * 2)
+                ctx.fillEllipse(in: ellipse)
+                ctx.strokeEllipse(in: ellipse)
+            }
+            if temp.points.count == 2 {
+                ctx.move(to: temp.points[0])
+                ctx.addLine(to: temp.points[1])
+                ctx.strokePath()
+            }
+            if temp.points.count == 3 {
+                ctx.move(to: temp.points[0])
+                ctx.addLine(to: temp.points[1])   // center → radius point
+                ctx.strokePath()
+                ctx.move(to: temp.points[0])
+                ctx.addLine(to: temp.points[2])   // center → mouse point
+                ctx.strokePath()
+                let (center, radius, startAngle, endAngle) = arcParameters(from: temp.points)
+                // Angles are computed in flipped screen space (Y down), but CGContext lives in
+                // Y-up space. The Y-flip mirrors all angles, reversing the sweep direction.
+                // Swapping start/end compensates, and clockwise:false then correctly draws
+                // the short arc counter-clockwise from points[1] to points[2].
+                ctx.addArc(center: center, radius: radius,
+                           startAngle: endAngle, endAngle: startAngle,
+                           clockwise: false)
+                ctx.strokePath()
+                
+            }
+            
+            
+        case .square:
             if let rect = temp.rect {
                 ctx.stroke(rect)
             }
+            
+        case .cubicBezier:
+            if let bezierSegs = temporaryShape?.bezierSegments {
+                if penMode {
+                    for point in bezierSegs {
+                        point.draw(ctx: ctx)
+                    }
+                }
+                if bezierSegs.count > 1 {
+                    drawBezierCurve(segments: bezierSegs, ctx: ctx)
+                }
 
-            case .cubicBezier:
-                break
+            }
+            
         }
         ctx.restoreGState()
-
+        
     }
     /// Derives CGContext arc parameters from three points:
     ///   points[0] = center
@@ -465,38 +475,38 @@ class DrawingNSView: NSView {
     ///   points[2] = end of arc (defines endAngle; mouse position)
     func arcParameters(from points: [CGPoint]) -> (center: CGPoint, radius: CGFloat, startAngle: CGFloat, endAngle: CGFloat) {
         precondition(points.count >= 3, "Need at least 3 points")
-
+        
         let center     = points[0]
         let startPoint = points[1]
         let endPoint   = points[2]
-
+        
         // Radius = distance from center to points[1]
         let radius = hypot(startPoint.x - center.x, startPoint.y - center.y)
-
+        
         // Angles are measured from the positive X axis (standard math convention)
         // atan2 returns radians in [-π, π]
         let startAngle = atan2((startPoint.y - center.y), startPoint.x - center.x)
         let endAngle   = atan2((endPoint.y   - center.y), endPoint.x   - center.x)
-
+        
         return (center, radius, startAngle, endAngle)
     }
-
+    
     // MARK: - Shape zeichnen
-
+    
     private func drawShape(_ shape: Shape, in ctx: CGContext) {
         
-
+        
         ctx.saveGState()
-
+        
         // Farbe
         let strokeColor = color(from: shape.color)
         ctx.setStrokeColor(strokeColor)
         ctx.setLineWidth(shape.width)
         ctx.setLineCap(.round)
         ctx.setLineJoin(.round)
-
+        
         switch shape.type {
-
+            
         case .freehand:
             
             guard shape.points.count > 1 else { break }
@@ -505,13 +515,13 @@ class DrawingNSView: NSView {
                 ctx.addLine(to: point)
             }
             ctx.strokePath()
-
+            
         case .straightLine:
             guard shape.points.count >= 2 else { break }
             ctx.move(to: shape.points[0])
             ctx.addLine(to: shape.points[shape.points.count - 1])
             ctx.strokePath()
-
+            
         case .rectangle:
             guard shape.points.count >= 4 else { break }
             ctx.move(to: shape.points[0])
@@ -536,14 +546,14 @@ class DrawingNSView: NSView {
                 break
             }
             drawBezierCurve(segments: shape.bezierSegments, ctx: ctx)
-
+            
         }
-
+        
         ctx.restoreGState()
     }
-
+    
     // MARK: - Hilfsmethoden
-
+    
     /// Wandelt den gespeicherten Farb-String in CGColor um.
     private func color(from name: String) -> CGColor {
         switch name.lowercased() {
@@ -555,23 +565,6 @@ class DrawingNSView: NSView {
         case "gray":   return NSColor.gray.cgColor
         default:       return NSColor.black.cgColor
         }
-    }
-    private func hitTest(mousePosition: CGPoint, threshold: CGFloat = 10) -> HitResult? {
-        for(index,point) in bezierSegments.enumerated() {
-            if mousePosition.distance(to: point.curvePoint) < threshold {
-                return .curvePoint(index: index)
-            }
-            if point.controlPoint != .zero,
-               mousePosition.distance(to: point.controlPoint) < threshold{
-                return .controlPoint(index: index)
-            }
-            if point.controlPoint1 != .zero,
-               mousePosition.distance(to: point.controlPoint1) < threshold{
-                return .controlPoint1(index: index)
-            }
-
-        }
-        return nil
     }
     private func createMirrorControlPoint(curvePoint: CGPoint, controlPoint: CGPoint) -> CGPoint {
         var mirroredControlPoint: CGPoint = .zero
@@ -592,7 +585,7 @@ class DrawingNSView: NSView {
         ctx.setStrokeColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
         ctx.setLineWidth(2)
         ctx.strokePath()
-
+        
     }
     private func drawBezierCurve(segments: [BezierSegment], ctx: CGContext) -> () {
         ctx.move(to: segments[0].curvePoint)
@@ -606,7 +599,7 @@ class DrawingNSView: NSView {
         ctx.setStrokeColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))
         ctx.setLineWidth(2)
         ctx.strokePath()
-
+        
     }
-
+    
 }

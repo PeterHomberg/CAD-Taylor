@@ -18,9 +18,10 @@ enum HitResult {
 class DrawingModel: ObservableObject {
     @Published var bezierSegments: [BezierSegment] = []
     @Published var penMode: Bool = true
-    @Published var bezierMode: Bool = false
     @Published var coordinate: CGPoint = .zero
     @Published var selectedDrawingMode: DrawingMode = .freehand
+    @Published var interactionMode: InteractionMode = .draw
+    @Published var clearTemporaryShape: Bool = false
     func clear() {
         print(" C L E A R")
         bezierSegments = []
