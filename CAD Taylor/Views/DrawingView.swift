@@ -540,7 +540,7 @@ class DrawingNSView: NSView {
         case .text:
             break  // noch nicht implementiert
         case .cubicBezier:
-            print("drawShape: entering cubicBezier case")
+            //print("drawShape: entering cubicBezier case")
             guard shape.bezierSegments.count > 1 else {
                 print("drawShape: not enough segments")
                 break

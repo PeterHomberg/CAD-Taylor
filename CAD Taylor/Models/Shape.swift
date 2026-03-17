@@ -67,7 +67,11 @@ struct Shape: Identifiable, Codable {
             if case .points(let pts) = geometry { return pts }
             return []
         }
-        set { geometry = .points(newValue) }
+        set {
+            guard case .points = geometry else {preconditionFailure("Shape error attempt to set bezier on points!!")}
+            geometry = .points(newValue)
+            
+        }
     }
 
     /// Read/write access to the bezier segments (cubicBezier shapes).
@@ -76,7 +80,11 @@ struct Shape: Identifiable, Codable {
             if case .bezier(let segs) = geometry { return segs }
             return []
         }
-        set { geometry = .bezier(newValue) }
+        set {
+            guard case .bezier = geometry else {preconditionFailure("Shape error attempt to set points on bezier!!")}
+            geometry = .bezier(newValue)
+            
+        }
     }
 
     // MARK: - Bounding Box

@@ -58,17 +58,6 @@ struct DrawingCanvasView: View {
                                 .fill(Color.white)
                                 .border(Color.gray, width: 1)
                                 .shadow(color: .gray.opacity(0.4), radius: 5, x: 2, y: 2)
-                            /*----------------------------------------------------------------------
-                            MouseTrackingView { location in
-                                // Koordinaten direkt übernehmen (kein zoomLevel-Offset nötig,
-                                // da der Canvas selbst skaliert wird)
-                                let adjustedLocation = CGPoint(
-                                    x: location.x / zoomLevel,
-                                    y: location.y / zoomLevel
-                                )
-                                currentCoordinates = adjustedLocation
-                            }
-                            ------------------------------------------------------------------------*/
                             DrawingView(
                                 model: model,
                                 shapes: shapes,
@@ -378,15 +367,39 @@ struct DrawingCanvasView: View {
               let startPoint = dragStartPoint,
               let original = originalShape else { return }
         
+        // Diagnostic — remove after bug is found
+        //print("handleShapeMove: shapes[index].type = \(shapes[index].type)")
+        //print("handleShapeMove: shapes[index].geometry = \(shapes[index].geometry)")
+        //print("handleShapeMove: original.type = \(original.type)")
+        //print("handleShapeMove: original.geometry = \(original.geometry)")
+
         let delta = CGPoint(
             x: location.x - startPoint.x,
             y: location.y - startPoint.y
         )
         
         // Alle Punkte des Shapes verschieben
-        shapes[index].points = original.points.map { point in
-            CGPoint(x: point.x + delta.x, y: point.y + delta.y)
+        switch original.geometry {
+        case .bezier:
+            shapes[index].bezierSegments = original.bezierSegments.map { seg in
+                var s = seg
+                s.curvePoint    = CGPoint(x: seg.curvePoint.x    + delta.x,
+                                          y: seg.curvePoint.y    + delta.y)
+                s.controlPoint  = CGPoint(x: seg.controlPoint.x  + delta.x,
+                                          y: seg.controlPoint.y  + delta.y)
+                s.controlPoint1 = CGPoint(x: seg.controlPoint1.x + delta.x,
+                                          y: seg.controlPoint1.y + delta.y)
+                return s
+            }
+
+        case .points:
+            shapes[index].points = original.points.map { point in
+                CGPoint(x: point.x + delta.x, y: point.y + delta.y)
+            }
+
         }
+        //print("handleShapeMove after points moved: shapes[index].type = \(shapes[index].type)")
+
     }
     
     private func handleShapeResize(to location: CGPoint) {
