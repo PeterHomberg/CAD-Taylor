@@ -215,9 +215,15 @@ struct DrawingCanvasView: View {
                         .cornerRadius(6)
                     }
                 }
+                .padding()
+
             }
-            .padding()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .border(Color.red, width: 2)
+            .layoutPriority(1)
             
+            Divider()
+            // MARK: - Toolbars
             // Right sidebar with drawing tools
             if model.interactionMode == .draw {
                 DrawingToolbar(
@@ -226,6 +232,9 @@ struct DrawingCanvasView: View {
                     model: model,
                     onCommitBezier: commitBezierShape
                 )
+                .fixedSize(horizontal: true, vertical: false)   // ← already correct
+                .frame(maxHeight: .infinity)
+                .border(Color.blue, width: 2)
             } else {
                 EditToolbar(
                     editMode: $editMode,
@@ -234,7 +243,10 @@ struct DrawingCanvasView: View {
                     showInMillimeters: $showInMillimeters,
                     hasSelection: selectedShapeID != nil
                 )
+                .fixedSize(horizontal: true, vertical: false)   // ← was missing
+                .frame(maxHeight: .infinity)                    // ← was missing
             }
+            
         }
         .frame(minWidth: 900, minHeight: 600)
         .onAppear {
@@ -271,7 +283,6 @@ struct DrawingCanvasView: View {
  
     private func handleMouseDown(at location: CGPoint) {
         currentCoordinates = location
- 
         switch model.interactionMode {
         case .draw:
             break
@@ -299,7 +310,6 @@ struct DrawingCanvasView: View {
  
     private func handleMouseDragged(at location: CGPoint) {
         currentCoordinates = location
- 
         switch model.interactionMode {
         case .draw:
             break
@@ -312,40 +322,7 @@ struct DrawingCanvasView: View {
             }
         }
     }
-    /*
-    private func commitShape() {
-        switch model.selectedDrawingMode {
-        case .freehand:
-            if let temp = model.shape, temp.type == .freehand &&
-                                        temp.points.count > 0 {
-                shapes.append(temp)
-            }
-        case .straightLine:
-            if let temp = model.shape, model.shape?.points.count == 2 {
-                shapes.append(temp)
-                temporaryShape = nil
-            }
 
-        case .square:
-            if let shape = model.shape, model.shape?.points.count == 4 {
-                shapes.append(shape)
-                temporaryShape = nil
-            }
-
-        case .circleArc:
-            if let temp = model.shape, model.shape?.type == .circleArc &&
-                                        model.shape?.points.count == 3{
-                shapes.append(temp)
-                temporaryShape = nil
-            }
-
-
-        case .cubicBezier:
-            break
-        }
-
-    }
-     */
     private func handleMouseUp(at location: CGPoint) {
         switch model.interactionMode {
         case .draw:
@@ -424,6 +401,8 @@ struct DrawingCanvasView: View {
     }
     
     // MARK: - Canvas Actions
+
+
     
     private func clearCanvas() {
         shapes.removeAll()

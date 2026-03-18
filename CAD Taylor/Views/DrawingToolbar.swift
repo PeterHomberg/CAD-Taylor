@@ -95,14 +95,41 @@ struct DrawingToolbar: View {
                 Text("Click to place points · Drag to pull handles · Double-click to finish")
                     .font(.caption).foregroundColor(.gray).padding(.leading, 8)
                     .fixedSize(horizontal: false, vertical: true)
-                HStack {
-                    Toggle("Pen Mode", isOn: $model.penMode)
-                        .toggleStyle(.checkbox)
-                    Button("Clear Canvas",action: model.clear)
-                    Button("Commit",action: onCommitBezier)
-                        .padding()
+                HStack(spacing: 6) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "pencil.tip")
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                        Toggle("", isOn: $model.penMode)
+                            .toggleStyle(.checkbox)
+                            .fixedSize()
+                    }
+                    .help("Toggles the control points editing")
+                    Divider()
+                        .frame(height: 20)
+                    Button { model.clear() } label: {
+                        Label("", systemImage: "circle.dashed.inset.filled") // Edit
+                    }
+                    .help("Edit")
+                    .toolbarButton(role: .default)
+                    .frame(maxWidth: .infinity)         // ← each button takes equal share
 
+
+                    Button { model.clear() } label: {
+                        Label("", systemImage: "trash") //Clear
+                    }
+                    .help("Clear the current Bezier curve")
+                    .toolbarButton(role: .destructive)
+                    .frame(maxWidth: .infinity)         // ← each button takes equal share
+
+                    Button { onCommitBezier() } label: {
+                        Label("", systemImage: "checkmark") //Commit
+                    }
+                    .help("Commit")
+                    .toolbarButton(role: .confirm)
+                    .frame(maxWidth: .infinity)         // ← each button takes equal share
                 }
+                
             }
 
             
@@ -121,7 +148,7 @@ struct DrawingToolbar: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding()
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: 240)
                         .background(Color.gray.opacity(0.1))
                         .cornerRadius(6)
                 }
@@ -129,8 +156,10 @@ struct DrawingToolbar: View {
             
             Spacer()
         }
-        .padding()
-        .frame(width: 280)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 12)
+        .frame(minWidth: 280, maxWidth: 340)
+        .clipped()
         .background(Color.gray.opacity(0.1))
     }
     
@@ -218,7 +247,7 @@ struct CoordinateInputSection: View {
                     Image(systemName: "checkmark.circle.fill")
                     Text("Apply Changes")
                 }
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: 240)
                 .padding(.vertical, 8)
                 .background(isEditing ? Color.blue : Color.gray.opacity(0.3))
                 .foregroundColor(.white)

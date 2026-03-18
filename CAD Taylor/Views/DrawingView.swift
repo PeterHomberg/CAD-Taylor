@@ -183,9 +183,7 @@ class DrawingNSView: NSView {
                 needsDisplay = true
             }
         }
-        if interactionMode == .select {
             onMouseMoved?(location)
-        }
         
     }
     // Click pressed down
@@ -260,9 +258,7 @@ class DrawingNSView: NSView {
                 break
             } // switch selectedDrawingMode
         }// if interactionMode == .draw
-        if interactionMode == .select {
             onMouseDown?(location)
-        }
         
     }
     // Dragged while button held
@@ -319,9 +315,7 @@ class DrawingNSView: NSView {
                 temporaryShape?.bezierSegments = bezierSegments
             }
         }
-        if interactionMode == .select {
             onMouseDragged?(location)
-        }
     }
     // Button released
     override func mouseUp(with event: NSEvent) {
@@ -364,9 +358,7 @@ class DrawingNSView: NSView {
             }
             
         }
-        if interactionMode == .select {
             onMouseUp?(location)
-        }
     }
     /*--------------------------------------------------------------------
      private func flipped(_ event: NSEvent) -> CGPoint {

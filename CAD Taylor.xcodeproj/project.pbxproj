@@ -13,12 +13,12 @@
 		FB6E2C2D2EDBE1C600E8EF11 /* Shape.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB6E2C2C2EDBE1C600E8EF11 /* Shape.swift */; };
 		FB6E2C2F2EDBE22B00E8EF11 /* InteractionMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB6E2C2E2EDBE22B00E8EF11 /* InteractionMode.swift */; };
 		FB6E2C312EDBE27E00E8EF11 /* HitTesting.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB6E2C302EDBE27E00E8EF11 /* HitTesting.swift */; };
-		FB6E2C352EDBE2F600E8EF11 /* EditToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB6E2C342EDBE2F600E8EF11 /* EditToolbar.swift */; };
 		FB6E2C392EDBE8BD00E8EF11 /* SharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB6E2C382EDBE8BD00E8EF11 /* SharedComponents.swift */; };
 		FB7C43E42EFBC012006ED97A /* INSTALLATION_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = FB7C43E02EFBC011006ED97A /* INSTALLATION_GUIDE.md */; };
 		FB7C43E52EFBC012006ED97A /* FIX_RECTANGLE_CLOSING.md in Resources */ = {isa = PBXBuildFile; fileRef = FB7C43E12EFBC011006ED97A /* FIX_RECTANGLE_CLOSING.md */; };
 		FB7C43E62EFBC012006ED97A /* VISUAL_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = FB7C43E22EFBC012006ED97A /* VISUAL_GUIDE.md */; };
 		FB7C43E72EFBC012006ED97A /* UPDATE_SELECT_MODE.md in Resources */ = {isa = PBXBuildFile; fileRef = FB7C43E32EFBC012006ED97A /* UPDATE_SELECT_MODE.md */; };
+		FB890A8B2F6A6F7100EE4B30 /* EditToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB890A8A2F6A6F7100EE4B30 /* EditToolbar.swift */; };
 		FB9900012EF90516007D4364 /* ShapeResizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB9900002EF90516007D4364 /* ShapeResizer.swift */; };
 		FB99FFFD2EF8FCE8007D4364 /* ResizeHandle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB99FFFC2EF8FCE8007D4364 /* ResizeHandle.swift */; };
 		FB99FFFF2EF8FD30007D4364 /* SelectionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB99FFFE2EF8FD30007D4364 /* SelectionOverlay.swift */; };
@@ -46,13 +46,13 @@
 		FB6E2C2C2EDBE1C600E8EF11 /* Shape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shape.swift; sourceTree = "<group>"; };
 		FB6E2C2E2EDBE22B00E8EF11 /* InteractionMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractionMode.swift; sourceTree = "<group>"; };
 		FB6E2C302EDBE27E00E8EF11 /* HitTesting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HitTesting.swift; sourceTree = "<group>"; };
-		FB6E2C342EDBE2F600E8EF11 /* EditToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditToolbar.swift; sourceTree = "<group>"; };
 		FB6E2C382EDBE8BD00E8EF11 /* SharedComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedComponents.swift; sourceTree = "<group>"; };
 		FB7A1F752F5EC622009720F5 /* RechteckZeichnen.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = RechteckZeichnen.md; sourceTree = "<group>"; };
 		FB7C43E02EFBC011006ED97A /* INSTALLATION_GUIDE.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = INSTALLATION_GUIDE.md; sourceTree = "<group>"; };
 		FB7C43E12EFBC011006ED97A /* FIX_RECTANGLE_CLOSING.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = FIX_RECTANGLE_CLOSING.md; sourceTree = "<group>"; };
 		FB7C43E22EFBC012006ED97A /* VISUAL_GUIDE.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = VISUAL_GUIDE.md; sourceTree = "<group>"; };
 		FB7C43E32EFBC012006ED97A /* UPDATE_SELECT_MODE.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = UPDATE_SELECT_MODE.md; sourceTree = "<group>"; };
+		FB890A8A2F6A6F7100EE4B30 /* EditToolbar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EditToolbar.swift; sourceTree = "<group>"; };
 		FB9900002EF90516007D4364 /* ShapeResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeResizer.swift; sourceTree = "<group>"; };
 		FB99FFFC2EF8FCE8007D4364 /* ResizeHandle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResizeHandle.swift; sourceTree = "<group>"; };
 		FB99FFFE2EF8FD30007D4364 /* SelectionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionOverlay.swift; sourceTree = "<group>"; };
@@ -157,10 +157,10 @@
 		FBF935622E939184003618E6 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				FB890A8A2F6A6F7100EE4B30 /* EditToolbar.swift */,
 				FBF935632E9391A1003618E6 /* DrawingCanvasView.swift */,
 				FBF935672E939233003618E6 /* DrawingView.swift */,
 				FBBB353D2EBC3FB60067C79C /* DrawingToolbar.swift */,
-				FB6E2C342EDBE2F600E8EF11 /* EditToolbar.swift */,
 				FB6E2C382EDBE8BD00E8EF11 /* SharedComponents.swift */,
 				FB99FFFE2EF8FD30007D4364 /* SelectionOverlay.swift */,
 			);
@@ -260,6 +260,7 @@
 				FBF935612E93913C003618E6 /* PDFExporter.swift in Sources */,
 				FBF935592E938FE0003618E6 /* MenuCommands.swift in Sources */,
 				FBF9355E2E9390E1003618E6 /* Line.swift in Sources */,
+				FB890A8B2F6A6F7100EE4B30 /* EditToolbar.swift in Sources */,
 				FBBB353E2EBC3FB60067C79C /* DrawingToolbar.swift in Sources */,
 				FB6E2C2F2EDBE22B00E8EF11 /* InteractionMode.swift in Sources */,
 				FB99FFFF2EF8FD30007D4364 /* SelectionOverlay.swift in Sources */,
@@ -271,7 +272,6 @@
 				FB6E2C2D2EDBE1C600E8EF11 /* Shape.swift in Sources */,
 				FB6E2C392EDBE8BD00E8EF11 /* SharedComponents.swift in Sources */,
 				FB5B17382EB482AE00128AD0 /* coordinate_converter.swift in Sources */,
-				FB6E2C352EDBE2F600E8EF11 /* EditToolbar.swift in Sources */,
 				FBF935642E9391A1003618E6 /* DrawingCanvasView.swift in Sources */,
 				FBDF28C62F665DC100E61ACD /* Bezier.swift in Sources */,
 				FBDF28C82F6665E400E61ACD /* Helpers.swift in Sources */,
