@@ -1,122 +1,143 @@
 // ============================================
 // File: DrawingCanvasView.swift
 // Main canvas view with drawing and selection functionality
-// FIXED: Zoom now respects canvas boundaries and hit-test works correctly
 // ============================================
 
 import SwiftUI
 
 struct DrawingCanvasView: View {
     static let a4Size = CGSize(width: CGFloat(210).pts, height: CGFloat(297).pts)
-    
-    // Shape-based system (replaces lines)
+
+    // Shape-based system
     @State private var shapes: [Shape] = []
     @State private var currentShape: Shape?
     @State private var temporaryShape: TemporaryShape?
     @State private var selectedShapeID: UUID?
-    
+
     // Interaction modes
-    //@State private var interactionMode: InteractionMode = .draw
     @State private var editMode: EditMode = .move
-    //@State private var selectedDrawingMode: DrawingMode = .freehand
-    
+
     // Drag state for editing
     @State private var dragStartPoint: CGPoint?
     @State private var originalShape: Shape?
     @State private var activeResizeHandle: ResizeHandle?
-    
+
     // UI state
     @State private var currentCoordinates = CGPoint.zero
-    
-    //@State private var canvasSize = CGSize(width: 210, height: 297)
     @State private var canvasSize = DrawingCanvasView.a4Size
     @State private var showCoordinates = true
     @State private var zoomLevel: CGFloat = 1.0
     @State private var mouseDownLocation: CGPoint?
     @Binding var showInMillimeters: Bool
-    @State var oldPoint: CGPoint = .zero
     @StateObject var model = DrawingModel()
+
+    // Scroll proxy for programmatic scrolling
+    @State private var scrollProxy: ScrollViewProxy? = nil
+
+    // Canvas auto-expansion
+    private let expansionStep: CGFloat = 60
+    private let edgeThreshold: CGFloat = 20
+
     var body: some View {
         HStack(spacing: 0) {
-            // Main canvas area
+
+            // MARK: - Main canvas area
             VStack {
-                // Drawing canvas with GeometryReader for proper zoom handling
-                // Neu:
-                ScrollView([.horizontal, .vertical], showsIndicators: true) {
-                    ZStack {
-                        // Hintergrund (Schatten-Effekt um A4-Seite)
-                        Rectangle()
-                            .fill(Color(NSColor.windowBackgroundColor))
-                            .frame(
-                                width: canvasSize.width * zoomLevel + 40,
-                                height: canvasSize.height * zoomLevel + 40
-                            )
-                        
-                        // A4 Canvas
+                ScrollViewReader { proxy in
+                    ScrollView([.horizontal, .vertical], showsIndicators: true) {
                         ZStack {
+                            // Background (shadow effect around A4 page)
                             Rectangle()
-                                .fill(Color.white)
-                                .border(Color.gray, width: 1)
-                                .shadow(color: .gray.opacity(0.4), radius: 5, x: 2, y: 2)
-                            DrawingView(
-                                model: model,
-                                shapes: shapes,
-                                canvasSize: $canvasSize,
-                                
-                                onMouseMoved:{ location in
-                                    // Koordinaten direkt übernehmen (kein zoomLevel-Offset nötig,
-                                    // da der Canvas selbst skaliert wird)
-                                    let adjustedLocation = CGPoint(
-                                        x: location.x / zoomLevel,
-                                        y: location.y / zoomLevel
-                                    )
+                                .fill(Color(NSColor.windowBackgroundColor))
+                                .frame(
+                                    width: canvasSize.width * zoomLevel + 40,
+                                    height: canvasSize.height * zoomLevel + 40
+                                )
 
-                                    currentCoordinates = model.coordinate
-                                    /*
-                                    if location != oldPoint {
-                                        print("DrawingCanvasView mouseMoved: \(model.coordinate)")
-                                        oldPoint = model.coordinate
+                            // A4 Canvas
+                            ZStack {
+                                Rectangle()
+                                    .fill(Color.white)
+                                    .border(Color.gray, width: 1)
+                                    .shadow(color: .gray.opacity(0.4), radius: 5, x: 2, y: 2)
+
+                                DrawingView(
+                                    model: model,
+                                    shapes: shapes,
+                                    canvasSize: $canvasSize,
+
+                                    onMouseMoved: { location in
+                                        currentCoordinates = model.coordinate
+                                    },
+                                    onMouseDown: { location in
+                                        let adjusted = CGPoint(
+                                            x: location.x / zoomLevel,
+                                            y: location.y / zoomLevel
+                                        )
+                                        mouseDownLocation = adjusted
+                                        handleMouseDown(at: adjusted)
+                                    },
+                                    onMouseDragged: { location in
+                                        let adjusted = CGPoint(
+                                            x: location.x / zoomLevel,
+                                            y: location.y / zoomLevel
+                                        )
+                                        handleMouseDragged(at: adjusted)
+                                    },
+                                    onMouseUp: { location in
+                                        let adjusted = CGPoint(
+                                            x: location.x / zoomLevel,
+                                            y: location.y / zoomLevel
+                                        )
+                                        handleMouseUp(at: adjusted)
+                                    },
+                                    onShapeCommitted: { shape in
+                                        shapes.append(shape)
+                                    },
+                                    onEdgeReached: { direction in
+                                        handleEdgeReached(direction)
                                     }
-                                     */
+                                )
 
-                                },
-                                onMouseDown: { location in
-                                    let adjusted = CGPoint(x: location.x / zoomLevel,
-                                                           y: location.y / zoomLevel)
-                                    mouseDownLocation = adjusted
-                                    handleMouseDown(at: adjusted)
-                                },
-                                onMouseDragged: { location in
-                                     let adjusted = CGPoint(x: location.x / zoomLevel,
-                                                            y: location.y / zoomLevel)
-                                     handleMouseDragged(at: adjusted)
-                                 },
-                                 onMouseUp: { location in
-                                     let adjusted = CGPoint(x: location.x / zoomLevel,
-                                                            y: location.y / zoomLevel)
-                                     handleMouseUp(at: adjusted)
-                                 },
-                                onShapeCommitted: { shape in
-                                        shapes.append(shape)       // directly append — no commitShape() needed
+                                if let selectedID = selectedShapeID,
+                                   let shape = shapes.first(where: { $0.id == selectedID }) {
+                                    SelectionOverlay(shape: shape)
                                 }
+                            }
+                            .frame(width: canvasSize.width, height: canvasSize.height)
+                            .scaleEffect(zoomLevel)
 
-                            )
-                            if let selectedID = selectedShapeID,
-                               let shape = shapes.first(where: { $0.id == selectedID }) {
-                                SelectionOverlay(shape: shape)
+                            // Scroll anchors
+                            VStack {
+                                HStack {
+                                    Color.clear
+                                        .frame(width: 1, height: 1)
+                                        .id("canvasTopLeft")
+                                    Spacer()
+                                }
+                                Spacer()
+                                HStack {
+                                    Spacer()
+                                    Color.clear
+                                        .frame(width: 1, height: 1)
+                                        .id("canvasBottomRight")
+                                }
                             }
                         }
-                        .frame(width: canvasSize.width, height: canvasSize.height)
-                        .scaleEffect(zoomLevel)
+                        // MARK: - ZStack end
+                        .frame(
+                            width: canvasSize.width * zoomLevel + 40,
+                            height: canvasSize.height * zoomLevel + 40
+                        )
                     }
-                    .frame(
-                        width: canvasSize.width * zoomLevel + 40,
-                        height: canvasSize.height * zoomLevel + 40
-                    )
+                    // MARK: - ScrollView end
+                    .onAppear { scrollProxy = proxy }
                 }
-                .background(Color(NSColor.windowBackgroundColor))                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                
-                // Bottom toolbar
+                // MARK: - ScrollViewReader end
+                .background(Color(NSColor.windowBackgroundColor))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                // MARK: - Bottom toolbar
                 HStack {
                     // Mode toggle buttons
                     HStack(spacing: 8) {
@@ -127,15 +148,16 @@ struct DrawingCanvasView: View {
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(model.interactionMode == .draw ? Color.blue : Color.gray.opacity(0.3))
+                            .background(model.interactionMode == .draw
+                                        ? Color.blue : Color.gray.opacity(0.3))
                             .foregroundColor(.white)
                             .cornerRadius(6)
                         }
                         .buttonStyle(PlainButtonStyle())
-                        
+
                         Button(action: {
                             model.interactionMode = .select
-                            selectedShapeID = nil // Deselect when switching modes
+                            selectedShapeID = nil
                         }) {
                             HStack {
                                 Image(systemName: "hand.point.up.left")
@@ -143,62 +165,58 @@ struct DrawingCanvasView: View {
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
-                            .background(model.interactionMode == .select ? Color.blue : Color.gray.opacity(0.3))
+                            .background(model.interactionMode == .select
+                                        ? Color.blue : Color.gray.opacity(0.3))
                             .foregroundColor(.white)
                             .cornerRadius(6)
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
-                    
+
                     Divider()
                         .frame(height: 30)
-                    
-                    // Actions
-                    Button("Clear Canvas") {
-                        clearCanvas()
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.red)
-                    .foregroundColor(Color.white)
-                    .cornerRadius(6)
-                    .buttonStyle(PlainButtonStyle())
-                    
-                    Button("Export PDF") {
-                        exportPDF()
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.green)
-                    .foregroundColor(Color.white)
-                    .cornerRadius(6)
-                    .buttonStyle(PlainButtonStyle())
-                    
-                    // Delete button (nur wenn Shape ausgewählt)
-                    if selectedShapeID != nil {
-                        Button("Delete") {
-                            deleteSelectedShape()
-                        }
+
+                    Button("Clear Canvas") { clearCanvas() }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(Color.orange)
+                        .background(Color.red)
                         .foregroundColor(Color.white)
                         .cornerRadius(6)
                         .buttonStyle(PlainButtonStyle())
+
+                    Button("Export PDF") { exportPDF() }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.green)
+                        .foregroundColor(Color.white)
+                        .cornerRadius(6)
+                        .buttonStyle(PlainButtonStyle())
+
+                    if selectedShapeID != nil {
+                        Button("Delete") { deleteSelectedShape() }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.orange)
+                            .foregroundColor(Color.white)
+                            .cornerRadius(6)
+                            .buttonStyle(PlainButtonStyle())
                     }
-                    
+
                     Spacer()
-                    
+
                     // Coordinates display
                     if showCoordinates {
-                        let xFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.x, inMillimeters: showInMillimeters)
-                        let yFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.y, inMillimeters: showInMillimeters)
-                        let unit = CoordinateConverter.unitLabel(inMillimeters: showInMillimeters)
-                        
+                        let xFormatted = CoordinateConverter.formatCoordinate(
+                            currentCoordinates.x, inMillimeters: showInMillimeters)
+                        let yFormatted = CoordinateConverter.formatCoordinate(
+                            currentCoordinates.y, inMillimeters: showInMillimeters)
+                        let unit = CoordinateConverter.unitLabel(
+                            inMillimeters: showInMillimeters)
+
                         VStack(alignment: .trailing, spacing: 2) {
                             Text("X: \(xFormatted) \(unit), Y: \(yFormatted) \(unit) | Zoom: \(Int(zoomLevel * 100))%")
                                 .font(.system(size: 14, design: .monospaced))
-                            
+
                             if let selectedID = selectedShapeID,
                                let shape = shapes.first(where: { $0.id == selectedID }) {
                                 Text("Selected: \(shape.type.displayName)")
@@ -216,15 +234,14 @@ struct DrawingCanvasView: View {
                     }
                 }
                 .padding()
-
             }
+            // MARK: - VStack end
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .border(Color.red, width: 2)
             .layoutPriority(1)
-            
+
             Divider()
-            // MARK: - Toolbars
-            // Right sidebar with drawing tools
+
+            // MARK: - Right sidebar
             if model.interactionMode == .draw {
                 DrawingToolbar(
                     shapes: $shapes,
@@ -232,9 +249,8 @@ struct DrawingCanvasView: View {
                     model: model,
                     onCommitBezier: commitBezierShape
                 )
-                .fixedSize(horizontal: true, vertical: false)   // ← already correct
+                .fixedSize(horizontal: true, vertical: false)
                 .frame(maxHeight: .infinity)
-                .border(Color.blue, width: 2)
             } else {
                 EditToolbar(
                     editMode: $editMode,
@@ -243,16 +259,12 @@ struct DrawingCanvasView: View {
                     showInMillimeters: $showInMillimeters,
                     hasSelection: selectedShapeID != nil
                 )
-                .fixedSize(horizontal: true, vertical: false)   // ← was missing
-                .frame(maxHeight: .infinity)                    // ← was missing
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(maxHeight: .infinity)
             }
-            
         }
         .frame(minWidth: 900, minHeight: 600)
-        .onAppear {
-            // Migration: convert any existing lines to shapes
-            // This would be needed if you have old data
-        }
+        .onAppear { }
         .setupNotificationHandlers(
             shapes: $shapes,
             currentShape: $currentShape,
@@ -265,29 +277,95 @@ struct DrawingCanvasView: View {
             onOpen: openDrawing
         )
     }
-    
+
+    // MARK: - Edge Detection + Auto-Expand
+
+    private func handleEdgeReached(_ direction: DrawingNSView.EdgeDirection) {
+        guard model.interactionMode == .draw else { return }
+
+        var newWidth  = canvasSize.width
+        var newHeight = canvasSize.height
+        var offsetX: CGFloat = 0
+        var offsetY: CGFloat = 0
+
+        switch direction {
+        case .right:
+            newWidth += expansionStep
+        case .bottom:
+            newHeight += expansionStep
+        case .left:
+            offsetX = expansionStep
+            newWidth += expansionStep
+        case .top:
+            offsetY = expansionStep
+            newHeight += expansionStep
+        }
+
+        // Shift all existing shapes if canvas grows left or top
+        if offsetX != 0 || offsetY != 0 {
+            offsetAllShapes(dx: offsetX, dy: offsetY)
+        }
+
+        canvasSize = CGSize(width: newWidth, height: newHeight)
+
+        // Scroll to follow the drawing direction — deferred so
+        // the layout updates before the scroll fires
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            withAnimation(.easeOut(duration: 0.15)) {
+                switch direction {
+                case .right, .bottom:
+                    scrollProxy?.scrollTo("canvasBottomRight",
+                                          anchor: .bottomTrailing)
+                case .left, .top:
+                    scrollProxy?.scrollTo("canvasTopLeft",
+                                          anchor: .topLeading)
+                }
+            }
+        }
+    }
+
+    private func offsetAllShapes(dx: CGFloat, dy: CGFloat) {
+        shapes = shapes.map { shape in
+            var s = shape
+            switch shape.geometry {
+            case .points(let pts):
+                s.points = pts.map {
+                    CGPoint(x: $0.x + dx, y: $0.y + dy)
+                }
+            case .bezier(let segs):
+                s.bezierSegments = segs.map { seg in
+                    var seg = seg
+                    seg.curvePoint    = CGPoint(x: seg.curvePoint.x    + dx,
+                                                y: seg.curvePoint.y    + dy)
+                    seg.controlPoint  = CGPoint(x: seg.controlPoint.x  + dx,
+                                                y: seg.controlPoint.y  + dy)
+                    seg.controlPoint1 = CGPoint(x: seg.controlPoint1.x + dx,
+                                                y: seg.controlPoint1.y + dy)
+                    return seg
+                }
+            }
+            return s
+        }
+    }
+
     // MARK: - Mouse Event Handlers
-    //
-    // Mapping NSView events → drawing logic:
     //
     //   mouseDown    = first contact, set start point
     //   mouseDragged = continuous update while button held
     //   mouseUp      = commit / finalise
     //
-    // Each mode uses the events differently:
     //   Freehand    : down=start shape, drag=add points, up=commit shape
     //   StraightLine: down=set start, drag=update end preview, up=commit
     //   Square      : down=set start, drag=update corner preview, up=commit
     //   CircleArc   : down=add point (3 clicks total), drag ignored, up unused
-    //   CubicBezier : handled separately in handleBezierGesture
- 
+    //   CubicBezier : handled inside DrawingNSView
+
     private func handleMouseDown(at location: CGPoint) {
         currentCoordinates = location
         switch model.interactionMode {
         case .draw:
             break
         case .select:
-            // Start selection / find handle
             if editMode == .resize,
                let shapeID = selectedShapeID,
                let shape = shapes.first(where: { $0.id == shapeID }),
@@ -307,12 +385,12 @@ struct DrawingCanvasView: View {
             }
         }
     }
- 
+
     private func handleMouseDragged(at location: CGPoint) {
         currentCoordinates = location
         switch model.interactionMode {
         case .draw:
-            break
+            break   // edge detection handled inside DrawingNSView
         case .select:
             guard dragStartPoint != nil else { return }
             if activeResizeHandle != nil {
@@ -327,35 +405,27 @@ struct DrawingCanvasView: View {
         switch model.interactionMode {
         case .draw:
             break
-            //commitShape()
         case .select:
             dragStartPoint = nil
             originalShape = nil
             activeResizeHandle = nil
         }
- 
         mouseDownLocation = nil
     }
- 
-    
+
+    // MARK: - Shape Move / Resize
+
     private func handleShapeMove(to location: CGPoint) {
         guard let shapeID = selectedShapeID,
               let index = shapes.firstIndex(where: { $0.id == shapeID }),
               let startPoint = dragStartPoint,
               let original = originalShape else { return }
-        
-        // Diagnostic — remove after bug is found
-        //print("handleShapeMove: shapes[index].type = \(shapes[index].type)")
-        //print("handleShapeMove: shapes[index].geometry = \(shapes[index].geometry)")
-        //print("handleShapeMove: original.type = \(original.type)")
-        //print("handleShapeMove: original.geometry = \(original.geometry)")
 
         let delta = CGPoint(
             x: location.x - startPoint.x,
             y: location.y - startPoint.y
         )
-        
-        // Alle Punkte des Shapes verschieben
+
         switch original.geometry {
         case .bezier:
             shapes[index].bezierSegments = original.bezierSegments.map { seg in
@@ -368,24 +438,19 @@ struct DrawingCanvasView: View {
                                           y: seg.controlPoint1.y + delta.y)
                 return s
             }
-
         case .points:
             shapes[index].points = original.points.map { point in
                 CGPoint(x: point.x + delta.x, y: point.y + delta.y)
             }
-
         }
-        //print("handleShapeMove after points moved: shapes[index].type = \(shapes[index].type)")
-
     }
-    
+
     private func handleShapeResize(to location: CGPoint) {
         guard let shapeID = selectedShapeID,
               let index = shapes.firstIndex(where: { $0.id == shapeID }),
               let handle = activeResizeHandle,
               let original = originalShape else { return }
-        
-        // Nutze ShapeResizer für die Resize-Logik
+
         shapes[index] = ShapeResizer.resize(
             shape: shapes[index],
             handle: handle,
@@ -393,48 +458,40 @@ struct DrawingCanvasView: View {
             originalShape: original
         )
     }
-    
+
     private func deleteSelectedShape() {
         guard let shapeID = selectedShapeID else { return }
         shapes.removeAll { $0.id == shapeID }
         selectedShapeID = nil
     }
-    
+
     // MARK: - Canvas Actions
 
-
-    
     private func clearCanvas() {
         shapes.removeAll()
         currentShape = nil
         temporaryShape = nil
         selectedShapeID = nil
         currentCoordinates = CGPoint.zero
+        canvasSize = DrawingCanvasView.a4Size   // reset to A4 on clear
     }
-    
+
     private func exportPDF() {
-        // Convert shapes to lines, preserving type information via point count
-        
         guard let pdf = PDFExporter(pageSize: canvasSize) else {
             print("Konnte pdf nicht erstellen")
             return
         }
-
-        
-        
         pdf.savePDFWithDialog(shapes: shapes)
     }
-    
+
     private func saveDrawing() {
-        // Save shapes directly (preserves type information)
         DrawingSerializer.saveDrawingWithDialog(shapes: shapes, canvasSize: canvasSize)
     }
-    
+
     private func openDrawing() {
         DrawingSerializer.openDrawingWithDialog { result in
             switch result {
             case .success(let data):
-                // Shapes are now loaded with correct type information!
                 shapes = data.shapes
                 canvasSize = data.canvasSize
                 currentShape = nil
@@ -445,92 +502,31 @@ struct DrawingCanvasView: View {
             }
         }
     }
+
     private func commitBezierShape() {
         guard !model.bezierSegments.isEmpty else {
             print("commitBezierShape: model.bezierSegments is EMPTY — nothing to commit")
             return
         }
         let shape = Shape(type: .cubicBezier, bezierSegments: model.bezierSegments)
-        print("commitBezierShape: created shape type=\(shape.type) segments=\(shape.bezierSegments.count)")
-        print("commitBezierShape: geometry=\(shape.geometry)")
         shapes.append(shape)
-        print("commitBezierShape: shapes.count=\(shapes.count), last type=\(shapes.last!.type)")
         model.clear()
         model.clearTemporaryShape = true
-        model.selectedDrawingMode = .freehand // ← optional: switch tool back
-
+        model.selectedDrawingMode = .freehand
     }
-    
 }
 
 // MARK: - Shape Type Extension
+
 extension ShapeType {
     var displayName: String {
         switch self {
-        case .freehand: return "Freehand"
+        case .freehand:     return "Freehand"
         case .straightLine: return "Straight Line"
-        case .rectangle: return "Rectangle"
-        case .circleArc: return "Circle Arc"
-        case .text: return "Text"
-        case .cubicBezier: return "Cubic Bezier"
-            
+        case .rectangle:    return "Rectangle"
+        case .circleArc:    return "Circle Arc"
+        case .text:         return "Text"
+        case .cubicBezier:  return "Cubic Bezier"
         }
     }
 }
-
-/************************************************************************************
- no more needed
- 
- // MARK: - Mouse Tracking View
- struct MouseTrackingView: NSViewRepresentable {
- let onMouseMoved: (CGPoint) -> Void
- 
- func makeNSView(context: Context) -> NSView {
- let view = MouseTrackingNSView()
- view.onMouseMoved = onMouseMoved
- return view
- }
- 
- func updateNSView(_ nsView: NSView, context: Context) {
- if let trackingView = nsView as? MouseTrackingNSView {
- trackingView.onMouseMoved = onMouseMoved
- }
- }
- }
- 
- class MouseTrackingNSView: NSView {
- var onMouseMoved: ((CGPoint) -> Void)?
- private var trackingArea: NSTrackingArea?
- 
- override func updateTrackingAreas() {
- super.updateTrackingAreas()
- 
- if let trackingArea = trackingArea {
- removeTrackingArea(trackingArea)
- }
- 
- let options: NSTrackingArea.Options = [
- .mouseMoved,
- .activeInKeyWindow,
- .inVisibleRect
- ]
- 
- trackingArea = NSTrackingArea(
- rect: bounds,
- options: options,
- owner: self,
- userInfo: nil
- )
- 
- if let trackingArea = trackingArea {
- addTrackingArea(trackingArea)
- }
- }
- 
- override func mouseMoved(with event: NSEvent) {
- let location = convert(event.locationInWindow, from: nil)
- let flippedLocation = CGPoint(x: location.x, y: bounds.height - location.y)
- onMouseMoved?(flippedLocation)
- }
- }
- ---------------------------------------------------------------*/

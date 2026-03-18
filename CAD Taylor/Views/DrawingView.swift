@@ -51,7 +51,8 @@ struct DrawingView: NSViewRepresentable {
     var onMouseDragged: ((CGPoint) -> Void)?
     var onMouseUp:      ((CGPoint) -> Void)?
     var onShapeCommitted: ((Shape) -> Void)?
-    
+    var onEdgeReached: ((DrawingNSView.EdgeDirection) -> Void)?
+
     func makeNSView(context: Context) -> DrawingNSView {
         let view = DrawingNSView(bezierSegments: model.bezierSegments)
         view.shapes = shapes
@@ -71,6 +72,7 @@ struct DrawingView: NSViewRepresentable {
             model?.bezierSegments = segments
         }
         view.delegate = context.coordinator
+        view.onEdgeReached = onEdgeReached
         return view
     }
     
@@ -104,7 +106,7 @@ struct DrawingView: NSViewRepresentable {
                 canvasSize = newSize
             }
         }
-        
+        nsView.onEdgeReached = onEdgeReached
         nsView.needsDisplay = true
     }
 }
@@ -126,16 +128,46 @@ class DrawingNSView: NSView {
     override var isFlipped: Bool { true }   // Koordinatenursprung oben-links, Y wächst nach unten
     override var acceptsFirstResponder: Bool {true}
     
-    // callback for mouse events
+    //MARK: - callbacks
     var onMouseMoved: ((CGPoint) -> Void)?
     var onMouseDown:    ((CGPoint) -> Void)?
     var onMouseDragged: ((CGPoint) -> Void)?
     var onMouseUp:      ((CGPoint) -> Void)?
-    
     var onShapeCommitted: ((Shape) -> Void)?
     
-    
-    // Bezier elements
+    //MARK: -  Edge detection
+    var onEdgeReached: ((EdgeDirection) -> ())?
+    let edgeThreshold: CGFloat = 20
+    enum EdgeDirection {
+        case right, bottom, left, top
+    }
+    // Clamps a point to the current view bounds
+    private func clampToBounds(_ point: CGPoint) -> CGPoint {
+        return CGPoint(
+            x: max(0, min(point.x, bounds.width)),
+            y: max(0, min(point.y, bounds.height))
+        )
+    }
+    // Checks if point is near an edge and fires callback
+    private func checkEdge(_ point: CGPoint) {
+        guard interactionMode == .draw else { return }
+
+        if point.x >= bounds.width - edgeThreshold {
+            onEdgeReached?(.right)
+        }
+        if point.y >= bounds.height - edgeThreshold {
+            onEdgeReached?(.bottom)
+        }
+        if point.x <= edgeThreshold {
+            onEdgeReached?(.left)
+        }
+        if point.y <= edgeThreshold {
+            onEdgeReached?(.top)
+        }
+    }
+
+
+    //MARK: -  Bezier elements
     var bezierSegments: [BezierSegment] = []{
         didSet {
             if !isUpdatingFromModel {
@@ -263,7 +295,10 @@ class DrawingNSView: NSView {
     }
     // Dragged while button held
     override func mouseDragged(with event: NSEvent) {
-        let location = convert(event.locationInWindow, from: nil)
+        let rawlocation = convert(event.locationInWindow, from: nil)
+        checkEdge(rawlocation)                        // check before clamping
+        let location = clampToBounds(rawlocation)     // clamp for drawing
+
         if interactionMode == .draw {
             //print("Mouse dragged  \(selectedDrawingMode ?? .freehand)")
             switch selectedDrawingMode{
