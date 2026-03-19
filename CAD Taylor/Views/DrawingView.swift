@@ -197,7 +197,7 @@ class DrawingNSView: NSView {
     var hitPoint: HitResult? = nil
     
     override func mouseMoved(with event: NSEvent) {
-        let location = convert(event.locationInWindow, from: nil)
+        var location = convert(event.locationInWindow, from: nil)
         let shiftHeld = event.modifierFlags.contains(.shift)
         if interactionMode == .draw && shiftHeld{
             switch selectedDrawingMode {
@@ -206,7 +206,7 @@ class DrawingNSView: NSView {
                     // in the middle of drawing bezier curve
                     let rawlocation = convert(event.locationInWindow, from: nil)
                     checkEdge(rawlocation)                        // check before clamping
-                    let location = clampToBounds(rawlocation)     // clamp for drawing
+                    location = clampToBounds(rawlocation)     // clamp for drawing
 
                 }
                 break
