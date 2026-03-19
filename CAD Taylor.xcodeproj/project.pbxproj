@@ -27,6 +27,9 @@
 		FBBB353E2EBC3FB60067C79C /* DrawingToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBBB353D2EBC3FB60067C79C /* DrawingToolbar.swift */; };
 		FBDF28C62F665DC100E61ACD /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBDF28C52F665DC100E61ACD /* Bezier.swift */; };
 		FBDF28C82F6665E400E61ACD /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBDF28C72F6665E400E61ACD /* Helpers.swift */; };
+		FBE4F7B22F6BEB1A004B3253 /* PrintSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE4F7B12F6BEB1A004B3253 /* PrintSetupView.swift */; };
+		FBE4F7B42F6BEBE5004B3253 /* PageLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE4F7B32F6BEBE5004B3253 /* PageLayout.swift */; };
+		FBE4F7B62F6BEF11004B3253 /* PageGridPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE4F7B52F6BEF11004B3253 /* PageGridPreview.swift */; };
 		FBE90E3C2E2B7E2E00C0CCC3 /* CADTaylorApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE90E3B2E2B7E2E00C0CCC3 /* CADTaylorApp.swift */; };
 		FBE90E402E2B7E3000C0CCC3 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FBE90E3F2E2B7E3000C0CCC3 /* Assets.xcassets */; };
 		FBE90E432E2B7E3000C0CCC3 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FBE90E422E2B7E3000C0CCC3 /* Preview Assets.xcassets */; };
@@ -62,6 +65,9 @@
 		FBBB353D2EBC3FB60067C79C /* DrawingToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingToolbar.swift; sourceTree = "<group>"; };
 		FBDF28C52F665DC100E61ACD /* Bezier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bezier.swift; sourceTree = "<group>"; };
 		FBDF28C72F6665E400E61ACD /* Helpers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Helpers.swift; path = ../../../../SwiftUI/LearnSwiftUI/CGraphicsTutorial/CGraphicsTutorial/Helpers.swift; sourceTree = "<group>"; };
+		FBE4F7B12F6BEB1A004B3253 /* PrintSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrintSetupView.swift; sourceTree = "<group>"; };
+		FBE4F7B32F6BEBE5004B3253 /* PageLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageLayout.swift; sourceTree = "<group>"; };
+		FBE4F7B52F6BEF11004B3253 /* PageGridPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageGridPreview.swift; sourceTree = "<group>"; };
 		FBE90E382E2B7E2E00C0CCC3 /* CAD Taylor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CAD Taylor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		FBE90E3B2E2B7E2E00C0CCC3 /* CADTaylorApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CADTaylorApp.swift; sourceTree = "<group>"; };
 		FBE90E3F2E2B7E3000C0CCC3 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -166,6 +172,8 @@
 				FBBB353D2EBC3FB60067C79C /* DrawingToolbar.swift */,
 				FB6E2C382EDBE8BD00E8EF11 /* SharedComponents.swift */,
 				FB99FFFE2EF8FD30007D4364 /* SelectionOverlay.swift */,
+				FBE4F7B12F6BEB1A004B3253 /* PrintSetupView.swift */,
+				FBE4F7B52F6BEF11004B3253 /* PageGridPreview.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -180,6 +188,7 @@
 				FB6E2C302EDBE27E00E8EF11 /* HitTesting.swift */,
 				FB99FFFC2EF8FCE8007D4364 /* ResizeHandle.swift */,
 				FB9900002EF90516007D4364 /* ShapeResizer.swift */,
+				FBE4F7B32F6BEBE5004B3253 /* PageLayout.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -261,9 +270,12 @@
 			files = (
 				FB6E2C312EDBE27E00E8EF11 /* HitTesting.swift in Sources */,
 				FB5B17362EB461EE00128AD0 /* drawing_serializer.swift in Sources */,
+				FBE4F7B62F6BEF11004B3253 /* PageGridPreview.swift in Sources */,
 				FBF935612E93913C003618E6 /* PDFExporter.swift in Sources */,
 				FBF935592E938FE0003618E6 /* MenuCommands.swift in Sources */,
+				FBE4F7B22F6BEB1A004B3253 /* PrintSetupView.swift in Sources */,
 				FBF9355E2E9390E1003618E6 /* Line.swift in Sources */,
+				FBE4F7B42F6BEBE5004B3253 /* PageLayout.swift in Sources */,
 				FB890A8B2F6A6F7100EE4B30 /* EditToolbar.swift in Sources */,
 				FBBB353E2EBC3FB60067C79C /* DrawingToolbar.swift in Sources */,
 				FB6E2C2F2EDBE22B00E8EF11 /* InteractionMode.swift in Sources */,

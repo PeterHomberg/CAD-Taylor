@@ -38,6 +38,11 @@ struct DrawingCanvasView: View {
     private let expansionStep: CGFloat = 60
     private let edgeThreshold: CGFloat = 20
 
+    // Print setup
+    @State private var showPrintSetup = false
+    @State private var selectedPaper: PaperSize = .a4
+
+    
     var body: some View {
         HStack(spacing: 0) {
 
@@ -201,6 +206,17 @@ struct DrawingCanvasView: View {
                             .cornerRadius(6)
                             .buttonStyle(PlainButtonStyle())
                     }
+                    Button("Print Pages") { showPrintSetup = true }
+                        .sheet(isPresented: $showPrintSetup) {
+                            PrintSetupView(
+                                canvasSize: canvasSize,
+                                selectedPaper: $selectedPaper,
+                                onExport: { layout in
+                                    exportPDF()
+                                    showPrintSetup = false
+                                }
+                            )
+                        }
 
                     Spacer()
 
@@ -481,7 +497,9 @@ struct DrawingCanvasView: View {
             print("Konnte pdf nicht erstellen")
             return
         }
-        pdf.savePDFWithDialog(shapes: shapes)
+        let layout = PageLayout(paperSize: selectedPaper.size, canvasSize: canvasSize)
+        pdf.saveMultiPagePDFWithDialog(shapes: shapes, layout: layout)
+        //pdf.savePDFWithDialog(shapes: shapes)
     }
 
     private func saveDrawing() {
