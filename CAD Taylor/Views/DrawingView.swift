@@ -198,7 +198,22 @@ class DrawingNSView: NSView {
     
     override func mouseMoved(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
-        
+        let shiftHeld = event.modifierFlags.contains(.shift)
+        if interactionMode == .draw && shiftHeld{
+            switch selectedDrawingMode {
+            case .cubicBezier:
+                if !bezierSegments.isEmpty {
+                    // in the middle of drawing bezier curve
+                    let rawlocation = convert(event.locationInWindow, from: nil)
+                    checkEdge(rawlocation)                        // check before clamping
+                    let location = clampToBounds(rawlocation)     // clamp for drawing
+
+                }
+                break
+            default:
+                break
+            }
+        }
         /*
          if location != oldPoint {
          print("NSView mouseMoved: \(location)")
