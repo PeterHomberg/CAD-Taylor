@@ -6,6 +6,19 @@
 import SwiftUI
 import AppKit
 
+//MARK: -
+/*
+ 
+ The coordinates from convert(event.locationInWindow, from: nil) in NSView are in points, not pixels. On macOS, AppKit always works in points — the same unit as PDF points at 72 pt/inch.
+ 
+ However — and this is the important part — on a non-Retina display points and pixels happen to be the same value (1:1 ratio). On a Retina display there are 2 pixels per point, but NSView still gives you points. You never see raw pixels in AppKit unless you explicitly ask for them via convertToBacking.
+ 
+ 
+ */
+
+
+
+
 
 protocol DrawingViewDelegate: AnyObject {
     func drawingView(_ drawingView: DrawingNSView,  newCoordinate: CGPoint)
@@ -332,7 +345,7 @@ class DrawingNSView: NSView {
             case .some(.cubicBezier):
                 if penMode == false {return}
                 
-                let location = convert(event.locationInWindow, from: nil)
+                //let location = convert(event.locationInWindow, from: nil) //this is most probably a bug
                 //print("Dragging at: \(location)")
                 lastMousePosition = location
                 needsDisplay = true   // triggers draw(_:) again
@@ -476,7 +489,7 @@ class DrawingNSView: NSView {
                 ctx.move(to: temp.points[0])
                 ctx.addLine(to: temp.points[2])   // center → mouse point
                 ctx.strokePath()
-                let (center, radius, startAngle, endAngle) = arcParameters(from: temp.points)
+                let (center, radius, startAngle, endAngle) = Shape.arcParameters(from: temp.points)
                 // Angles are computed in flipped screen space (Y down), but CGContext lives in
                 // Y-up space. The Y-flip mirrors all angles, reversing the sweep direction.
                 // Swapping start/end compensates, and clockwise:false then correctly draws
@@ -515,23 +528,6 @@ class DrawingNSView: NSView {
     ///   points[0] = center
     ///   points[1] = start of arc (defines radius and startAngle)
     ///   points[2] = end of arc (defines endAngle; mouse position)
-    func arcParameters(from points: [CGPoint]) -> (center: CGPoint, radius: CGFloat, startAngle: CGFloat, endAngle: CGFloat) {
-        precondition(points.count >= 3, "Need at least 3 points")
-        
-        let center     = points[0]
-        let startPoint = points[1]
-        let endPoint   = points[2]
-        
-        // Radius = distance from center to points[1]
-        let radius = hypot(startPoint.x - center.x, startPoint.y - center.y)
-        
-        // Angles are measured from the positive X axis (standard math convention)
-        // atan2 returns radians in [-π, π]
-        let startAngle = atan2((startPoint.y - center.y), startPoint.x - center.x)
-        let endAngle   = atan2((endPoint.y   - center.y), endPoint.x   - center.x)
-        
-        return (center, radius, startAngle, endAngle)
-    }
     
     // MARK: - Shape zeichnen
     
@@ -574,7 +570,7 @@ class DrawingNSView: NSView {
             ctx.strokePath()
         case .circleArc:
             guard shape.points.count == 3 else { break }
-            let (center, radius, startAngle, endAngle) = arcParameters(from: shape.points)
+            let (center, radius, startAngle, endAngle) = Shape.arcParameters(from: shape.points)
             ctx.addArc(center: center, radius: radius,
                        startAngle: endAngle, endAngle: startAngle,
                        clockwise: false)

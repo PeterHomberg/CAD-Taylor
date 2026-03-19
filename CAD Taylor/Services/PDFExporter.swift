@@ -19,12 +19,10 @@ class PDFExporter {
     ]
 
     
-    init?(pageSize: CGSize) {
-        var pageSizePts = pageSize
-        pageSizePts.height = pageSize.height.pts
-        pageSizePts.width = pageSize.width.pts
-        var mediaBox = CGRect(origin: .zero, size: pageSizePts)
-        self.pageHeight = pageSize.height.pts
+    init?(pageSize: CGSize) { //pageSize is in pts because NSView works on pts. See also the comment                        //at the beginning of DrawView.swift
+        var mediaBox = CGRect(origin: .zero, size: pageSize)
+        print(pageSize)
+        self.pageHeight = pageSize.height
         
         guard let dataConsumer = CGDataConsumer(data: pdfData),
               let ctx = CGContext(consumer: dataConsumer, mediaBox: &mediaBox, pdfMetaData as CFDictionary) else {
@@ -59,27 +57,33 @@ class PDFExporter {
         beginPage()
         // Draw all shapes
         for shape in shapes {
-            if shape.points.count > 1 {
-                context.beginPath()
+            switch shape.type {
                 
-                //context.move(to: CGPoint(x: from.x.pts+marginMM.pts, y: from.y.pts+marginMM.pts))
-                //context.addLine(to: CGPoint(x: to.x.pts+marginMM.pts, y: to.y.pts+marginMM.pts))
-
-                
-                
-                context.move(to: shape.points[0].pts)
-                
-                for point in shape.points.dropFirst() {
-                    context.addLine(to: point.pts)
+            case .freehand, .straightLine, .rectangle:
+                if shape.points.count > 1 {
+                    context.beginPath()
+                    context.move(to: shape.points[0])
+                    for point in shape.points.dropFirst() {
+                        context.addLine(to: point)
+                    }
+                    // WICHTIG: Für Rechtecke muss der Pfad geschlossen werden
+                    // um die letzte Linie zurück zum Startpunkt zu zeichnen
+                    if shape.type == .rectangle {
+                        context.closePath()
+                    }
+                    context.strokePath()
                 }
-                
-                // WICHTIG: Für Rechtecke muss der Pfad geschlossen werden
-                // um die letzte Linie zurück zum Startpunkt zu zeichnen
-                if shape.type == .rectangle {
-                    context.closePath()
-                }
-                
+            case .circleArc:
+                guard shape.points.count == 3 else { break }
+                let (center, radius, startAngle, endAngle) = Shape.arcParameters(from: shape.points)
+                context.addArc(center: center, radius: radius,
+                           startAngle: endAngle, endAngle: startAngle,
+                           clockwise: false)
                 context.strokePath()
+            case .cubicBezier:
+                break
+            case .text:
+                break
             }
         }
         endPage()

@@ -151,6 +151,24 @@ struct Shape: Identifiable, Codable {
         self.color = line.color
         self.width = line.width
     }
+    static func arcParameters(from points: [CGPoint]) -> (center: CGPoint, radius: CGFloat, startAngle: CGFloat, endAngle: CGFloat) {
+        precondition(points.count >= 3, "Need at least 3 points")
+        
+        let center     = points[0]
+        let startPoint = points[1]
+        let endPoint   = points[2]
+        
+        // Radius = distance from center to points[1]
+        let radius = hypot(startPoint.x - center.x, startPoint.y - center.y)
+        
+        // Angles are measured from the positive X axis (standard math convention)
+        // atan2 returns radians in [-π, π]
+        let startAngle = atan2((startPoint.y - center.y), startPoint.x - center.x)
+        let endAngle   = atan2((endPoint.y   - center.y), endPoint.x   - center.x)
+        
+        return (center, radius, startAngle, endAngle)
+    }
+
 }
 
 // MARK: - Named Point (für Koordinatentabelle)

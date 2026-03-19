@@ -7,7 +7,7 @@ import SwiftUI
 
 @main
 struct CADTaylorApp: App {
-    @State private var showInMillimeters = false
+    @State private var showInMillimeters = true
     
     var body: some Scene {
         WindowGroup {
@@ -19,6 +19,7 @@ struct CADTaylorApp: App {
             CommandGroup(before: .sidebar) {
                 Toggle("Show in Millimeters", isOn: $showInMillimeters)
                     .keyboardShortcut("m", modifiers: [.command, .shift])
+                    .disabled(true)
             }
         }
     }
