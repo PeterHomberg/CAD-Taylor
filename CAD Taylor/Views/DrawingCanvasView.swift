@@ -31,120 +31,85 @@ struct DrawingCanvasView: View {
     @Binding var showInMillimeters: Bool
     @StateObject var model = DrawingModel()
 
-    // Scroll proxy for programmatic scrolling
-    @State private var scrollProxy: ScrollViewProxy? = nil
-
-    // Canvas auto-expansion
-    private let expansionStep: CGFloat = 60
-    private let edgeThreshold: CGFloat = 20
-
     // Print setup
     @State private var showPrintSetup = false
     @State private var selectedPaper: PaperSize = .a4
 
-    
     var body: some View {
         HStack(spacing: 0) {
 
             // MARK: - Main canvas area
             VStack {
-                ScrollViewReader { proxy in
-                    ScrollView([.horizontal, .vertical], showsIndicators: true) {
+                ScrollView([.horizontal, .vertical], showsIndicators: true) {
+                    ZStack {
+                        // Background
+                        Rectangle()
+                            .fill(Color(NSColor.windowBackgroundColor))
+                            .frame(
+                                width:  canvasSize.width  * zoomLevel + 40,
+                                height: canvasSize.height * zoomLevel + 40
+                            )
+
+                        // Drawing canvas
                         ZStack {
-                            // Background (shadow effect around A4 page)
                             Rectangle()
-                                .fill(Color(NSColor.windowBackgroundColor))
-                                .frame(
-                                    width: canvasSize.width * zoomLevel + 40,
-                                    height: canvasSize.height * zoomLevel + 40
-                                )
+                                .fill(Color.white)
+                                .border(Color.gray, width: 1)
+                                .shadow(color: .gray.opacity(0.4), radius: 5, x: 2, y: 2)
 
-                            // A4 Canvas
-                            ZStack {
-                                Rectangle()
-                                    .fill(Color.white)
-                                    .border(Color.gray, width: 1)
-                                    .shadow(color: .gray.opacity(0.4), radius: 5, x: 2, y: 2)
+                            DrawingView(
+                                model: model,
+                                shapes: shapes,
+                                canvasSize: $canvasSize,
 
-                                DrawingView(
-                                    model: model,
-                                    shapes: shapes,
-                                    canvasSize: $canvasSize,
-
-                                    onMouseMoved: { location in
-                                        currentCoordinates = model.coordinate
-                                    },
-                                    onMouseDown: { location in
-                                        let adjusted = CGPoint(
-                                            x: location.x / zoomLevel,
-                                            y: location.y / zoomLevel
-                                        )
-                                        mouseDownLocation = adjusted
-                                        handleMouseDown(at: adjusted)
-                                    },
-                                    onMouseDragged: { location in
-                                        let adjusted = CGPoint(
-                                            x: location.x / zoomLevel,
-                                            y: location.y / zoomLevel
-                                        )
-                                        handleMouseDragged(at: adjusted)
-                                    },
-                                    onMouseUp: { location in
-                                        let adjusted = CGPoint(
-                                            x: location.x / zoomLevel,
-                                            y: location.y / zoomLevel
-                                        )
-                                        handleMouseUp(at: adjusted)
-                                    },
-                                    onShapeCommitted: { shape in
-                                        shapes.append(shape)
-                                    },
-                                    onEdgeReached: { direction in
-                                        handleEdgeReached(direction)
-                                    }
-                                )
-
-                                if let selectedID = selectedShapeID,
-                                   let shape = shapes.first(where: { $0.id == selectedID }) {
-                                    SelectionOverlay(shape: shape)
+                                onMouseMoved: { _ in
+                                    currentCoordinates = model.coordinate
+                                },
+                                onMouseDown: { location in
+                                    let adjusted = CGPoint(
+                                        x: location.x / zoomLevel,
+                                        y: location.y / zoomLevel
+                                    )
+                                    mouseDownLocation = adjusted
+                                    handleMouseDown(at: adjusted)
+                                },
+                                onMouseDragged: { location in
+                                    let adjusted = CGPoint(
+                                        x: location.x / zoomLevel,
+                                        y: location.y / zoomLevel
+                                    )
+                                    handleMouseDragged(at: adjusted)
+                                },
+                                onMouseUp: { location in
+                                    let adjusted = CGPoint(
+                                        x: location.x / zoomLevel,
+                                        y: location.y / zoomLevel
+                                    )
+                                    handleMouseUp(at: adjusted)
+                                },
+                                onShapeCommitted: { shape in
+                                    shapes.append(shape)
                                 }
-                            }
-                            .frame(width: canvasSize.width, height: canvasSize.height)
-                            .scaleEffect(zoomLevel)
+                            )
 
-                            // Scroll anchors
-                            VStack {
-                                HStack {
-                                    Color.clear
-                                        .frame(width: 1, height: 1)
-                                        .id("canvasTopLeft")
-                                    Spacer()
-                                }
-                                Spacer()
-                                HStack {
-                                    Spacer()
-                                    Color.clear
-                                        .frame(width: 1, height: 1)
-                                        .id("canvasBottomRight")
-                                }
+                            if let selectedID = selectedShapeID,
+                               let shape = shapes.first(where: { $0.id == selectedID }) {
+                                SelectionOverlay(shape: shape)
                             }
                         }
-                        // MARK: - ZStack end
-                        .frame(
-                            width: canvasSize.width * zoomLevel + 40,
-                            height: canvasSize.height * zoomLevel + 40
-                        )
+                        .frame(width: canvasSize.width, height: canvasSize.height)
+                        .scaleEffect(zoomLevel)
                     }
-                    // MARK: - ScrollView end
-                    .onAppear { scrollProxy = proxy }
+                    .frame(
+                        width:  canvasSize.width  * zoomLevel + 40,
+                        height: canvasSize.height * zoomLevel + 40
+                    )
                 }
-                // MARK: - ScrollViewReader end
                 .background(Color(NSColor.windowBackgroundColor))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 // MARK: - Bottom toolbar
                 HStack {
-                    // Mode toggle buttons
                     HStack(spacing: 8) {
                         Button(action: { model.interactionMode = .draw }) {
                             HStack {
@@ -206,21 +171,17 @@ struct DrawingCanvasView: View {
                             .cornerRadius(6)
                             .buttonStyle(PlainButtonStyle())
                     }
+
                     Button("Print Pages") { showPrintSetup = true }
-                        .sheet(isPresented: $showPrintSetup) {
-                            PrintSetupView(
-                                canvasSize: canvasSize,
-                                selectedPaper: $selectedPaper,
-                                onExport: { layout in
-                                    exportPDF()
-                                    showPrintSetup = false
-                                }
-                            )
-                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.blue)
+                        .foregroundColor(Color.white)
+                        .cornerRadius(6)
+                        .buttonStyle(PlainButtonStyle())
 
                     Spacer()
 
-                    // Coordinates display
                     if showCoordinates {
                         let xFormatted = CoordinateConverter.formatCoordinate(
                             currentCoordinates.x, inMillimeters: showInMillimeters)
@@ -254,6 +215,16 @@ struct DrawingCanvasView: View {
             // MARK: - VStack end
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .layoutPriority(1)
+            .sheet(isPresented: $showPrintSetup) {
+                PrintSetupView(
+                    canvasSize: canvasSize,
+                    selectedPaper: $selectedPaper,
+                    onExport: { layout in
+                        exportMultiPage(layout: layout)
+                        showPrintSetup = false
+                    }
+                )
+            }
 
             Divider()
 
@@ -292,76 +263,6 @@ struct DrawingCanvasView: View {
             onSave: saveDrawing,
             onOpen: openDrawing
         )
-    }
-
-    // MARK: - Edge Detection + Auto-Expand
-
-    private func handleEdgeReached(_ direction: DrawingNSView.EdgeDirection) {
-        guard model.interactionMode == .draw else { return }
-
-        var newWidth  = canvasSize.width
-        var newHeight = canvasSize.height
-        var offsetX: CGFloat = 0
-        var offsetY: CGFloat = 0
-
-        switch direction {
-        case .right:
-            newWidth += expansionStep
-        case .bottom:
-            newHeight += expansionStep
-        case .left:
-            offsetX = expansionStep
-            newWidth += expansionStep
-        case .top:
-            offsetY = expansionStep
-            newHeight += expansionStep
-        }
-
-        // Shift all existing shapes if canvas grows left or top
-        if offsetX != 0 || offsetY != 0 {
-            offsetAllShapes(dx: offsetX, dy: offsetY)
-        }
-
-        canvasSize = CGSize(width: newWidth, height: newHeight)
-
-        // Scroll to follow the drawing direction — deferred so
-        // the layout updates before the scroll fires
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            withAnimation(.easeOut(duration: 0.15)) {
-                switch direction {
-                case .right, .bottom:
-                    scrollProxy?.scrollTo("canvasBottomRight",
-                                          anchor: .bottomTrailing)
-                case .left, .top:
-                    scrollProxy?.scrollTo("canvasTopLeft",
-                                          anchor: .topLeading)
-                }
-            }
-        }
-    }
-
-    private func offsetAllShapes(dx: CGFloat, dy: CGFloat) {
-        shapes = shapes.map { shape in
-            var s = shape
-            switch shape.geometry {
-            case .points(let pts):
-                s.points = pts.map {
-                    CGPoint(x: $0.x + dx, y: $0.y + dy)
-                }
-            case .bezier(let segs):
-                s.bezierSegments = segs.map { seg in
-                    var seg = seg
-                    seg.curvePoint    = CGPoint(x: seg.curvePoint.x    + dx,
-                                                y: seg.curvePoint.y    + dy)
-                    seg.controlPoint  = CGPoint(x: seg.controlPoint.x  + dx,
-                                                y: seg.controlPoint.y  + dy)
-                    seg.controlPoint1 = CGPoint(x: seg.controlPoint1.x + dx,
-                                                y: seg.controlPoint1.y + dy)
-                    return seg
-                }
-            }
-            return s
-        }
     }
 
     // MARK: - Mouse Event Handlers
@@ -406,7 +307,7 @@ struct DrawingCanvasView: View {
         currentCoordinates = location
         switch model.interactionMode {
         case .draw:
-            break   // edge detection handled inside DrawingNSView
+            break
         case .select:
             guard dragStartPoint != nil else { return }
             if activeResizeHandle != nil {
@@ -489,17 +390,17 @@ struct DrawingCanvasView: View {
         temporaryShape = nil
         selectedShapeID = nil
         currentCoordinates = CGPoint.zero
-        canvasSize = DrawingCanvasView.a4Size   // reset to A4 on clear
+        canvasSize = DrawingCanvasView.a4Size
     }
 
     private func exportPDF() {
-        guard let pdf = PDFExporter(pageSize: canvasSize) else {
-            print("Konnte pdf nicht erstellen")
-            return
-        }
-        let layout = PageLayout(paperSize: selectedPaper.size, canvasSize: canvasSize)
+        guard let pdf = PDFExporter(pageSize: canvasSize) else { return }
+        pdf.savePDFWithDialog(shapes: shapes)
+    }
+
+    private func exportMultiPage(layout: PageLayout) {
+        guard let pdf = PDFExporter(pageSize: layout.paperSize) else { return }
         pdf.saveMultiPagePDFWithDialog(shapes: shapes, layout: layout)
-        //pdf.savePDFWithDialog(shapes: shapes)
     }
 
     private func saveDrawing() {
@@ -522,10 +423,7 @@ struct DrawingCanvasView: View {
     }
 
     private func commitBezierShape() {
-        guard !model.bezierSegments.isEmpty else {
-            print("commitBezierShape: model.bezierSegments is EMPTY — nothing to commit")
-            return
-        }
+        guard !model.bezierSegments.isEmpty else { return }
         let shape = Shape(type: .cubicBezier, bezierSegments: model.bezierSegments)
         shapes.append(shape)
         model.clear()
