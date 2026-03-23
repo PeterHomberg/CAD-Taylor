@@ -28,7 +28,9 @@ struct DrawingView: NSViewRepresentable {
     var onMouseDragged:   ((CGPoint) -> Void)?
     var onMouseUp:        ((CGPoint) -> Void)?
     var onShapeCommitted: ((Shape)   -> Void)?
-
+    
+    
+    
     class ViewNSDelegate: NSObject, DrawingViewDelegate {
         var model: DrawingModel
         init(model: DrawingModel) { self.model = model }
@@ -105,6 +107,8 @@ class DrawingNSView: NSView {
     var onMouseDragged:   ((CGPoint) -> Void)?
     var onMouseUp:        ((CGPoint) -> Void)?
     var onShapeCommitted: ((Shape)   -> Void)?
+    
+    private var dragStartedInside = false
 
     // MARK: Bezier state
     var bezierSegments: [BezierSegment] = [] {
@@ -131,10 +135,53 @@ class DrawingNSView: NSView {
     }
 
     override func viewDidMoveToWindow() {
-        window?.acceptsMouseMovedEvents = true
-        becomeFirstResponder()
+        super.viewDidMoveToWindow()
+        updateTrackingAreas()
+        // Do NOT set window?.acceptsMouseMovedEvents = true here.
+        // That flag routes ALL mouse-moved/dragged events in the window to the
+        // first responder, which steals them from the scroll bar sliders.
+        // NSTrackingArea scopes delivery to this view's bounds only.
     }
 
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        // Remove stale tracking areas before adding a fresh one.
+        for area in trackingAreas { removeTrackingArea(area) }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseMoved, .activeInKeyWindow, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+    }
+
+    // hitTest: return nil when the click is outside our visible bounds so
+    // AppKit's normal routing gives scroll bar clicks to the scroller widget.
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        // 1. Convert the point from superview (the ClipView) to our local coordinates
+        guard let superview = superview else { return super.hitTest(point) }
+        let localPoint = superview.convert(point, to: self)
+        
+        // 2. Check if the click is inside the VISIBLE part of the canvas.
+        // If it's over a scrollbar, it won't be in the visibleRect.
+        if visibleRect.contains(localPoint) {
+            return super.hitTest(point)
+        }
+        
+        // 3. If it's not in the visible area, return nil.
+        // This allows the event to "fall through" to the ScrollBar.
+        return nil
+    }
+    /*
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        // point is in superview coordinates
+        guard let superview = superview else { return super.hitTest(point) }
+        let localPoint = superview.convert(point, to: self)
+        return bounds.contains(localPoint) ? super.hitTest(point) : nil
+    }
+     */
+     
     // MARK: - Mouse moved
 
     override func mouseMoved(with event: NSEvent) {
@@ -157,6 +204,15 @@ class DrawingNSView: NSView {
 
     override func mouseDown(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
+        // Use visibleRect to ensure we aren't clicking 'under' a scrollbar
+            // or outside the clipped area of the scrollview
+        dragStartedInside = visibleRect.contains(location)
+        //dragStartedInside = bounds.contains(location)
+        guard dragStartedInside else {
+            nextResponder?.mouseDown(with: event)
+            //super.mouseDown(with: event)
+            return
+        }
 
         if interactionMode == .draw {
             switch selectedDrawingMode {
@@ -224,6 +280,12 @@ class DrawingNSView: NSView {
     // MARK: - Mouse dragged
 
     override func mouseDragged(with event: NSEvent) {
+        guard dragStartedInside else {
+            nextResponder?.mouseDragged(with: event)
+            //super.mouseDragged(with: event)
+            return
+        }
+
         let location = convert(event.locationInWindow, from: nil)
 
         if interactionMode == .draw {
@@ -282,6 +344,13 @@ class DrawingNSView: NSView {
     // MARK: - Mouse up
 
     override func mouseUp(with event: NSEvent) {
+        defer { dragStartedInside = false }
+        guard dragStartedInside else {
+            nextResponder?.mouseUp(with: event)
+            super.mouseUp(with: event)
+            return
+        }
+
         let location = convert(event.locationInWindow, from: nil)
 
         if interactionMode == .draw {

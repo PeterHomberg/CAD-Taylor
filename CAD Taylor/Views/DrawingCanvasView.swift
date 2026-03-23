@@ -33,6 +33,8 @@ struct DrawingCanvasView: View {
 
     // Print setup
     @State private var showPrintSetup = false
+    @State private var showCanvasSetup = false
+
     @State private var selectedPaper: PaperSize = .a4
 
     var body: some View {
@@ -179,6 +181,14 @@ struct DrawingCanvasView: View {
                         .foregroundColor(Color.white)
                         .cornerRadius(6)
                         .buttonStyle(PlainButtonStyle())
+                    
+                    Button("Canvas Setup") { showCanvasSetup = true }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.blue)
+                        .foregroundColor(Color.white)
+                        .cornerRadius(6)
+                        .buttonStyle(PlainButtonStyle())
 
                     Spacer()
 
@@ -225,6 +235,18 @@ struct DrawingCanvasView: View {
                     }
                 )
             }
+            
+            .sheet(isPresented: $showCanvasSetup) {
+                CanvasSetupView(
+                    //canvasSize: canvasSize,
+                    //selectedPaper: $selectedPaper,
+                    //onExport: { layout in
+                        //exportMultiPage(layout: layout)
+                    //}
+                    showCanvasSetup: $showCanvasSetup, canvasSize: $canvasSize
+                )
+            }
+
 
             Divider()
 
@@ -390,7 +412,6 @@ struct DrawingCanvasView: View {
         temporaryShape = nil
         selectedShapeID = nil
         currentCoordinates = CGPoint.zero
-        canvasSize = DrawingCanvasView.a4Size
     }
 
     private func exportPDF() {
