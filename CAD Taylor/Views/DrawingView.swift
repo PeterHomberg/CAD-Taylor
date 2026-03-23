@@ -16,6 +16,7 @@ struct DrawingView: NSViewRepresentable {
     @ObservedObject var model: DrawingModel
     let shapes: [Shape]
     @Binding var canvasSize: CGSize
+    @Binding var zoomLevel: CGFloat
     let selectedShapeID: UUID?
     let editMode: EditMode
 
@@ -66,6 +67,11 @@ struct DrawingView: NSViewRepresentable {
         // Sync Canvas Size
         if drawingView.frame.size != canvasSize {
             drawingView.frame = NSRect(origin: .zero, size: canvasSize)
+        }
+
+        // Sync zoom level
+        if nsView.magnification != zoomLevel {
+            nsView.magnification = zoomLevel
         }
         
         // Sync Model State to Canvas
@@ -421,6 +427,15 @@ class DrawingNSView: NSView {
 
         case .circleArc:
             drawHandles(at: shape.points, color: NSColor.orange.cgColor, size: 8, in: ctx)
+
+        case .cubicBezier:
+            if selectedEditMode == .resize {
+                // Draw control point handles and dashed connection lines
+                // using the same BezierSegment.draw(ctx:) used in draw mode
+                for segment in shape.bezierSegments {
+                    segment.draw(ctx: ctx)
+                }
+            }
 
         default:
             break

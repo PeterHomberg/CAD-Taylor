@@ -21,6 +21,7 @@ struct DrawingCanvasView: View {
     @State private var dragStartPoint: CGPoint?
     @State private var originalShape: Shape?
     @State private var activeResizeHandle: ResizeHandle?
+    @State private var activeBezierHit: HitResult?
 
     // UI state
     @State private var currentCoordinates = CGPoint.zero
@@ -47,6 +48,7 @@ struct DrawingCanvasView: View {
                         model: model,
                         shapes: shapes,
                         canvasSize: $canvasSize,
+                        zoomLevel: $zoomLevel,
                         selectedShapeID: selectedShapeID,
                         editMode: editMode,
                         onMouseMoved: { location in
@@ -132,6 +134,15 @@ struct DrawingCanvasView: View {
         .sheet(isPresented: $showCanvasSetup) {
             CanvasSetupView(showCanvasSetup: $showCanvasSetup, canvasSize: $canvasSize)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .zoomIn)) { _ in
+            zoomLevel = min(zoomLevel + 0.25, 3.0)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .zoomOut)) { _ in
+            zoomLevel = max(zoomLevel - 0.25, 0.25)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .resetZoom)) { _ in
+            zoomLevel = 1.0
+        }
     }
 
     // MARK: - View Components
@@ -186,12 +197,23 @@ struct DrawingCanvasView: View {
         if model.interactionMode == .select {
             if editMode == .resize,
                let shapeID = selectedShapeID,
-               let shape = shapes.first(where: { $0.id == shapeID }),
-               let handle = ResizeHandle.findHandle(at: location, for: shape) {
-                activeResizeHandle = handle
-                dragStartPoint = location
-                originalShape = shape
-            } else if let foundShape = HitTesting.findShape(at: location, in: shapes) {
+               let shape = shapes.first(where: { $0.id == shapeID }) {
+                // Bezier: hit-test control/curve points first
+                if shape.type == .cubicBezier {
+                    if let hit = HitTesting.hitTestBezierPoints(mousePosition: location, bezierSegments: shape.bezierSegments) {
+                        activeBezierHit = hit
+                        originalShape = shape
+                        dragStartPoint = location
+                        return
+                    }
+                } else if let handle = ResizeHandle.findHandle(at: location, for: shape) {
+                    activeResizeHandle = handle
+                    dragStartPoint = location
+                    originalShape = shape
+                    return
+                }
+            }
+            if let foundShape = HitTesting.findShape(at: location, in: shapes) {
                 selectedShapeID = foundShape.id
                 dragStartPoint = location
                 originalShape = foundShape
@@ -205,10 +227,12 @@ struct DrawingCanvasView: View {
     private func handleMouseDragged(at location: CGPoint) {
         currentCoordinates = location
         if model.interactionMode == .select {
-            guard let startPoint = dragStartPoint, let original = originalShape else { return }
-            if activeResizeHandle != nil {
+            if let hit = activeBezierHit {
+                handleBezierPointDrag(to: location, hit: hit)
+            } else if activeResizeHandle != nil {
                 handleShapeResize(to: location)
-            } else if editMode == .move {
+            } else if editMode == .move,
+                      let startPoint = dragStartPoint, let original = originalShape {
                 handleShapeMove(to: location, from: startPoint, original: original)
             }
         }
@@ -218,7 +242,29 @@ struct DrawingCanvasView: View {
         dragStartPoint = nil
         originalShape = nil
         activeResizeHandle = nil
+        activeBezierHit = nil
         mouseDownLocation = nil
+    }
+
+    private func handleBezierPointDrag(to location: CGPoint, hit: HitResult) {
+        guard let shapeID = selectedShapeID,
+              let index = shapes.firstIndex(where: { $0.id == shapeID }),
+              shapes[index].type == .cubicBezier else { return }
+
+        var segs = shapes[index].bezierSegments
+        switch hit {
+        case .curvePoint(let i):
+            segs[i].curvePoint = location
+            // Keep the mirror segment's curvePoint1 in sync
+            if segs.count > 1 && i == segs.count - 1 {
+                segs[segs.count - 2].curvePoint1 = location
+            }
+        case .controlPoint(let i):
+            segs[i].controlPoint = location
+        case .controlPoint1(let i):
+            segs[i].controlPoint1 = location
+        }
+        shapes[index].bezierSegments = segs
     }
 
     private func handleShapeMove(to location: CGPoint, from startPoint: CGPoint, original: Shape) {
