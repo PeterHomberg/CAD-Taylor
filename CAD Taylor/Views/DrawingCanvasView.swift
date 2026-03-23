@@ -47,6 +47,8 @@ struct DrawingCanvasView: View {
                         model: model,
                         shapes: shapes,
                         canvasSize: $canvasSize,
+                        selectedShapeID: selectedShapeID,
+                        editMode: editMode,
                         onMouseMoved: { location in
                             currentCoordinates = location
                         },
@@ -64,12 +66,6 @@ struct DrawingCanvasView: View {
                             shapes.append(shape)
                         }
                     )
-                    
-                    if let selectedID = selectedShapeID,
-                       let shape = shapes.first(where: { $0.id == selectedID }) {
-                        SelectionOverlay(shape: shape)
-                            .allowsHitTesting(false)
-                    }
                 }
                 .background(Color(NSColor.windowBackgroundColor))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

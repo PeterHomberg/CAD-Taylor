@@ -16,6 +16,8 @@ struct DrawingView: NSViewRepresentable {
     @ObservedObject var model: DrawingModel
     let shapes: [Shape]
     @Binding var canvasSize: CGSize
+    let selectedShapeID: UUID?
+    let editMode: EditMode
 
     var onMouseMoved:     ((CGPoint) -> Void)?
     var onMouseDown:      ((CGPoint) -> Void)?
@@ -51,7 +53,7 @@ struct DrawingView: NSViewRepresentable {
         
         // Connect the canvas to the scroll view
         scrollView.documentView = drawingView
-        
+
         // Initial setup of callbacks
         configureDrawingView(drawingView, context: context)
         
@@ -82,6 +84,8 @@ struct DrawingView: NSViewRepresentable {
         drawingView.penMode             = model.penMode
         drawingView.selectedDrawingMode = model.selectedDrawingMode
         drawingView.interactionMode     = model.interactionMode
+        drawingView.selectedShapeID     = selectedShapeID
+        drawingView.selectedEditMode    = editMode
 
         if model.clearTemporaryShape {
             drawingView.temporaryShape     = nil
@@ -115,6 +119,8 @@ class DrawingNSView: NSView {
 
     var shapes: [Shape] = []        { didSet { needsDisplay = true } }
     var temporaryShape: TemporaryShape? { didSet { needsDisplay = true } }
+    var selectedShapeID: UUID?      { didSet { needsDisplay = true } }
+    var selectedEditMode: EditMode = .move { didSet { needsDisplay = true } }
 
     var arcClickCount: Int = 0
 
@@ -280,6 +286,11 @@ class DrawingNSView: NSView {
             drawTemporaryShape(ctx: ctx, temp: temp)
         }
 
+        if let selectedID = selectedShapeID,
+           let shape = shapes.first(where: { $0.id == selectedID }) {
+            drawSelectionOverlay(shape: shape, in: ctx)
+        }
+
         if penMode {
             for segment in bezierSegments {
                 segment.draw(ctx: ctx)
@@ -374,6 +385,62 @@ class DrawingNSView: NSView {
     // (Remaining helper methods: drawShape, drawTemporaryShape, color, drawBezierCurve etc.
     // kept the same as your previous logic...)
     
+    private func drawSelectionOverlay(shape: Shape, in ctx: CGContext) {
+        ctx.saveGState()
+
+        let box = shape.boundingBox
+
+        // Dashed bounding box
+        ctx.setStrokeColor(NSColor.systemBlue.cgColor)
+        ctx.setLineWidth(2)
+        ctx.setLineDash(phase: 0, lengths: [5, 3])
+        ctx.stroke(box)
+
+        ctx.setLineDash(phase: 0, lengths: []) // reset dash for handles
+
+        // Resize / edit handles
+        switch shape.type {
+        case .rectangle:
+            let handlePoints: [CGPoint] = [
+                CGPoint(x: box.minX, y: box.minY),
+                CGPoint(x: box.maxX, y: box.minY),
+                CGPoint(x: box.maxX, y: box.maxY),
+                CGPoint(x: box.minX, y: box.maxY),
+                CGPoint(x: box.midX, y: box.minY),
+                CGPoint(x: box.maxX, y: box.midY),
+                CGPoint(x: box.midX, y: box.maxY),
+                CGPoint(x: box.minX, y: box.midY),
+            ]
+            drawHandles(at: handlePoints, color: NSColor.systemBlue.cgColor, size: 10, in: ctx)
+
+        case .straightLine:
+            if shape.points.count >= 2 {
+                drawHandles(at: [shape.points.first!, shape.points.last!],
+                            color: NSColor.systemBlue.cgColor, size: 10, in: ctx)
+            }
+
+        case .circleArc:
+            drawHandles(at: shape.points, color: NSColor.orange.cgColor, size: 8, in: ctx)
+
+        default:
+            break
+        }
+
+        ctx.restoreGState()
+    }
+
+    private func drawHandles(at points: [CGPoint], color: CGColor, size: CGFloat, in ctx: CGContext) {
+        let r = size / 2
+        for point in points {
+            let rect = CGRect(x: point.x - r, y: point.y - r, width: size, height: size)
+            ctx.setFillColor(NSColor.white.cgColor)
+            ctx.fillEllipse(in: rect)
+            ctx.setStrokeColor(color)
+            ctx.setLineWidth(2)
+            ctx.strokeEllipse(in: rect)
+        }
+    }
+
     private func drawTemporaryShape(ctx: CGContext, temp: TemporaryShape) {
         ctx.saveGState()
         ctx.setStrokeColor(NSColor.systemBlue.cgColor)

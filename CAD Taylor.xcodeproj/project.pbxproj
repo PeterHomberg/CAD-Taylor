@@ -22,7 +22,6 @@
 		FB890A8E2F6AA05A00EE4B30 /* push-all.sh in Resources */ = {isa = PBXBuildFile; fileRef = FB890A8D2F6AA05A00EE4B30 /* push-all.sh */; };
 		FB9900012EF90516007D4364 /* ShapeResizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB9900002EF90516007D4364 /* ShapeResizer.swift */; };
 		FB99FFFD2EF8FCE8007D4364 /* ResizeHandle.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB99FFFC2EF8FCE8007D4364 /* ResizeHandle.swift */; };
-		FB99FFFF2EF8FD30007D4364 /* SelectionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB99FFFE2EF8FD30007D4364 /* SelectionOverlay.swift */; };
 		FBBB353C2EBC3F720067C79C /* DrawingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBBB353B2EBC3F720067C79C /* DrawingMode.swift */; };
 		FBBB353E2EBC3FB60067C79C /* DrawingToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBBB353D2EBC3FB60067C79C /* DrawingToolbar.swift */; };
 		FBDF28C62F665DC100E61ACD /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBDF28C52F665DC100E61ACD /* Bezier.swift */; };
@@ -61,7 +60,6 @@
 		FB890A8D2F6AA05A00EE4B30 /* push-all.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = "push-all.sh"; sourceTree = "<group>"; };
 		FB9900002EF90516007D4364 /* ShapeResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeResizer.swift; sourceTree = "<group>"; };
 		FB99FFFC2EF8FCE8007D4364 /* ResizeHandle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResizeHandle.swift; sourceTree = "<group>"; };
-		FB99FFFE2EF8FD30007D4364 /* SelectionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionOverlay.swift; sourceTree = "<group>"; };
 		FBBB353B2EBC3F720067C79C /* DrawingMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingMode.swift; sourceTree = "<group>"; };
 		FBBB353D2EBC3FB60067C79C /* DrawingToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingToolbar.swift; sourceTree = "<group>"; };
 		FBDF28C52F665DC100E61ACD /* Bezier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bezier.swift; sourceTree = "<group>"; };
@@ -173,7 +171,6 @@
 				FBF935672E939233003618E6 /* DrawingView.swift */,
 				FBBB353D2EBC3FB60067C79C /* DrawingToolbar.swift */,
 				FB6E2C382EDBE8BD00E8EF11 /* SharedComponents.swift */,
-				FB99FFFE2EF8FD30007D4364 /* SelectionOverlay.swift */,
 				FBE4F7B12F6BEB1A004B3253 /* PrintSetupView.swift */,
 				FBE4F7B52F6BEF11004B3253 /* PageGridPreview.swift */,
 				FBE4F7D42F6FA863004B3253 /* CanvasSetupView.swift */,
@@ -283,7 +280,6 @@
 				FB890A8B2F6A6F7100EE4B30 /* EditToolbar.swift in Sources */,
 				FBBB353E2EBC3FB60067C79C /* DrawingToolbar.swift in Sources */,
 				FB6E2C2F2EDBE22B00E8EF11 /* InteractionMode.swift in Sources */,
-				FB99FFFF2EF8FD30007D4364 /* SelectionOverlay.swift in Sources */,
 				FBF9356B2E939281003618E6 /* ViewModifiers.swift in Sources */,
 				FBF935682E939233003618E6 /* DrawingView.swift in Sources */,
 				FBF9355B2E939050003618E6 /* NotificationNames.swift in Sources */,
