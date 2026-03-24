@@ -7,22 +7,22 @@ import SwiftUI
 
 struct DrawingCanvasView: View {
     static let a4Size = CGSize(width: CGFloat(210).pts, height: CGFloat(297).pts)
-
+    
     // Shape-based system
     @State private var shapes: [Shape] = []
     @State private var currentShape: Shape?
     @State private var temporaryShape: TemporaryShape?
     @State private var selectedShapeID: UUID?
-
+    
     // Interaction modes
     @State private var editMode: EditMode = .move
-
+    
     // Drag state for editing
     @State private var dragStartPoint: CGPoint?
     @State private var originalShape: Shape?
     @State private var activeResizeHandle: ResizeHandle?
     @State private var activeBezierHit: HitResult?
-
+    
     // UI state
     @State private var currentCoordinates = CGPoint.zero
     @State private var canvasSize = DrawingCanvasView.a4Size
@@ -31,16 +31,16 @@ struct DrawingCanvasView: View {
     @State private var mouseDownLocation: CGPoint?
     @Binding var showInMillimeters: Bool
     @StateObject var model = DrawingModel()
-
+    
     // Print setup
     @State private var showPrintSetup = false
     @State private var showCanvasSetup = false
-
+    
     @State private var selectedPaper: PaperSize = .a4
-
+    
     var body: some View {
         HStack(spacing: 0) {
-
+            
             // MARK: - Main canvas area
             VStack(spacing: 0) {
                 ZStack(alignment: .topLeading) {
@@ -71,7 +71,7 @@ struct DrawingCanvasView: View {
                 }
                 .background(Color(NSColor.windowBackgroundColor))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-
+                
                 // MARK: - Bottom toolbar
                 HStack(spacing: 10) {
                     HStack(spacing: 8) {
@@ -79,7 +79,7 @@ struct DrawingCanvasView: View {
                             Label("Draw", systemImage: "pencil")
                         }
                         .toolbarButton(role: model.interactionMode == .draw ? .primary : .default)
-
+                        
                         Button(action: {
                             model.interactionMode = .select
                             selectedShapeID = nil
@@ -88,28 +88,28 @@ struct DrawingCanvasView: View {
                         }
                         .toolbarButton(role: model.interactionMode == .select ? .primary : .default)
                     }
-
+                    
                     Divider().frame(height: 24)
-
+                    
                     Button("Clear Canvas") { clearCanvas() }
                         .toolbarButton(role: .destructive)
-
+                    
                     Button("Export PDF") { exportPDF() }
                         .toolbarButton(role: .confirm)
-
+                    
                     if selectedShapeID != nil {
                         Button("Delete") { deleteSelectedShape() }
                             .toolbarButton(role: .destructive)
                     }
-
+                    
                     Button("Print Pages") { showPrintSetup = true }
                         .toolbarButton(role: .primary)
                     
                     Button("Canvas Setup") { showCanvasSetup = true }
                         .toolbarButton(role: .default)
-
+                    
                     Spacer()
-
+                    
                     if showCoordinates {
                         coordinateOverlay
                     }
@@ -119,9 +119,9 @@ struct DrawingCanvasView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .layoutPriority(1)
-
+            
             Divider()
-
+            
             sidebarArea
         }
         .frame(minWidth: 900, minHeight: 600)
@@ -143,19 +143,30 @@ struct DrawingCanvasView: View {
         .onReceive(NotificationCenter.default.publisher(for: .resetZoom)) { _ in
             zoomLevel = 1.0
         }
+        .setupNotificationHandlers(
+            shapes: $shapes,
+            currentShape: $currentShape,
+            currentCoordinates: $currentCoordinates,
+            zoomLevel: $zoomLevel,
+            showCoordinates: $showCoordinates,
+            canvasSize: canvasSize,
+            onExport: exportPDF,
+            onSave: saveDrawing,
+            onOpen: openDrawing
+        )
+
     }
-
     // MARK: - View Components
-
+    
     private var coordinateOverlay: some View {
         let xFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.x, inMillimeters: showInMillimeters)
         let yFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.y, inMillimeters: showInMillimeters)
         let unit = CoordinateConverter.unitLabel(inMillimeters: showInMillimeters)
-
+        
         return VStack(alignment: .trailing, spacing: 2) {
             Text("X: \(xFormatted) \(unit), Y: \(yFormatted) \(unit)")
                 .font(.system(size: 13, design: .monospaced))
-
+            
             if let selectedID = selectedShapeID,
                let shape = shapes.first(where: { $0.id == selectedID }) {
                 Text("Selected: \(shape.type.displayName)")
@@ -167,7 +178,7 @@ struct DrawingCanvasView: View {
         .background(Color.gray.opacity(0.1))
         .cornerRadius(4)
     }
-
+    
     @ViewBuilder
     private var sidebarArea: some View {
         if model.interactionMode == .draw {
@@ -189,9 +200,9 @@ struct DrawingCanvasView: View {
             .fixedSize(horizontal: true, vertical: false)
         }
     }
-
+    
     // MARK: - Mouse Event Handlers
-
+    
     private func handleMouseDown(at location: CGPoint) {
         currentCoordinates = location
         if model.interactionMode == .select {
@@ -223,7 +234,7 @@ struct DrawingCanvasView: View {
             }
         }
     }
-
+    
     private func handleMouseDragged(at location: CGPoint) {
         currentCoordinates = location
         if model.interactionMode == .select {
@@ -237,7 +248,7 @@ struct DrawingCanvasView: View {
             }
         }
     }
-
+    
     private func handleMouseUp(at location: CGPoint) {
         dragStartPoint = nil
         originalShape = nil
@@ -245,12 +256,12 @@ struct DrawingCanvasView: View {
         activeBezierHit = nil
         mouseDownLocation = nil
     }
-
+    
     private func handleBezierPointDrag(to location: CGPoint, hit: HitResult) {
         guard let shapeID = selectedShapeID,
               let index = shapes.firstIndex(where: { $0.id == shapeID }),
               shapes[index].type == .cubicBezier else { return }
-
+        
         var segs = shapes[index].bezierSegments
         switch hit {
         case .curvePoint(let i):
@@ -266,11 +277,11 @@ struct DrawingCanvasView: View {
         }
         shapes[index].bezierSegments = segs
     }
-
+    
     private func handleShapeMove(to location: CGPoint, from startPoint: CGPoint, original: Shape) {
         guard let shapeID = selectedShapeID,
               let index = shapes.firstIndex(where: { $0.id == shapeID }) else { return }
-
+        
         let delta = CGPoint(x: location.x - startPoint.x, y: location.y - startPoint.y)
         
         var updated = original
@@ -281,13 +292,13 @@ struct DrawingCanvasView: View {
         }
         shapes[index] = updated
     }
-
+    
     private func handleShapeResize(to location: CGPoint) {
         guard let shapeID = selectedShapeID,
               let index = shapes.firstIndex(where: { $0.id == shapeID }),
               let handle = activeResizeHandle,
               let original = originalShape else { return }
-
+        
         shapes[index] = ShapeResizer.resize(
             shape: shapes[index],
             handle: handle,
@@ -295,29 +306,47 @@ struct DrawingCanvasView: View {
             originalShape: original
         )
     }
-
+    
     // MARK: - Actions
-
+    
     private func deleteSelectedShape() {
         guard let shapeID = selectedShapeID else { return }
         shapes.removeAll { $0.id == shapeID }
         selectedShapeID = nil
     }
-
+    
     private func clearCanvas() {
         shapes.removeAll()
         selectedShapeID = nil
         currentCoordinates = .zero
     }
-
+    
     private func exportPDF() {
         PDFExporter(pageSize: canvasSize)?.savePDFWithDialog(shapes: shapes)
     }
-
+    
     private func exportMultiPage(layout: PageLayout) {
         PDFExporter(pageSize: layout.paperSize)?.saveMultiPagePDFWithDialog(shapes: shapes, layout: layout)
     }
-
+    private func saveDrawing() {
+        DrawingSerializer.saveDrawingWithDialog(shapes: shapes, canvasSize: canvasSize)
+    }
+    
+    private func openDrawing() {
+        DrawingSerializer.openDrawingWithDialog { result in
+            switch result {
+            case .success(let data):
+                shapes = data.shapes
+                canvasSize = data.canvasSize
+                currentShape = nil
+                currentCoordinates = CGPoint.zero
+                selectedShapeID = nil
+            case .failure(let error):
+                print("Failed to open drawing: \(error)")
+            }
+        }
+    }
+    
     private func commitBezierShape() {
         guard !model.bezierSegments.isEmpty else { return }
         let shape = Shape(type: .cubicBezier, bezierSegments: model.bezierSegments)
