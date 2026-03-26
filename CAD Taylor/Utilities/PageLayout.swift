@@ -101,8 +101,8 @@ struct CuttingMarks {
         // So flip locally just for text: translate to where text top-left should be,
         // then flip so AppKit sees bottom-left origin at that point.
         let textTopLeft = CGPoint(
-            x: CuttingMarks.markOffset + CuttingMarks.markLength + 4,
-            y: CuttingMarks.markOffset   // Y measured from top
+            x: 100,
+            y: 5  // Y measured from top
         )
         ctx.saveGState()
         ctx.translateBy(x: textTopLeft.x, y: textTopLeft.y + textSize.height)
@@ -134,19 +134,36 @@ struct CuttingMarks {
         
         //str.draw(at: .zero)
         ctx.restoreGState()
-
+        print("CTM before mark overlap bands: \(ctx.ctm)")
         // --- Overlap bands ---
-        ctx.setFillColor(CGColor(gray: 0.9, alpha: 0.2))
+        ctx.setFillColor(CGColor(gray: 0.9, alpha: 0.8))
         ctx.setLineDash(phase: 0, lengths: [])
-        if column > 0 {
-            ctx.fill(CGRect(x: CuttingMarks.markOffset, y: CuttingMarks.markOffset,
+        if column == 0 {
+            ctx.fill(CGRect(x: 50, y: 100,
+                            width: 20,
+                            height: 100 ))
+            ctx.fill(CGRect(x: layout.paperSize.width - overlap, y: 0,
                             width: layout.overlap,
-                            height: layout.paperSize.height - CuttingMarks.markOffset * 2))
+                            height: layout.paperSize.height ))
         }
-        if row > 0 {
-            ctx.fill(CGRect(x: CuttingMarks.markOffset, y: CuttingMarks.markOffset,
-                            width: layout.paperSize.width - CuttingMarks.markOffset * 2,
+        else if column > 0 && column < totalColumns - 1 {
+            ctx.fill(CGRect(x: 0, y: 0,
+                            width: layout.overlap,
+                            height: layout.paperSize.height ))
+        }
+        else if column == totalColumns - 1 {
+            
+        }
+        if row == 0 {
+        
+        }
+        else if row > 0 && row < totalRows - 1 {
+            ctx.fill(CGRect(x: 0, y: 0,
+                            width: layout.paperSize.width,
                             height: layout.overlap))
+        }
+        else if row == totalRows - 1 {
+            
         }
 
         ctx.restoreGState()
