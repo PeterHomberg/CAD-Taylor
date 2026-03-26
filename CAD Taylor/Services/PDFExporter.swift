@@ -101,7 +101,7 @@ class PDFExporter {
         // Flip Y axis (PDF = bottom-left, canvas = top-left)
         context.translateBy(x: 0, y: layout.paperSize.height)
         context.scaleBy(x: 1.0, y: -1.0)
-
+        print("CTM after flip in beginMulti: \(context.ctm)")
         // The canvas region this page covers
         let canvasRect = layout.canvasRect(column: column, row: row)
         print("canvasRect: \(canvasRect)")

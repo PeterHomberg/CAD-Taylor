@@ -92,7 +92,7 @@ struct CuttingMarks {
             + "  [\(column + 1)×\(row + 1)]"
         let attrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 7),
-            .foregroundColor: NSColor.gray
+            .foregroundColor: NSColor.red
         ]
         let str = NSAttributedString(string: label, attributes: attrs)
         let textSize = str.size()
@@ -107,11 +107,36 @@ struct CuttingMarks {
         ctx.saveGState()
         ctx.translateBy(x: textTopLeft.x, y: textTopLeft.y + textSize.height)
         ctx.scaleBy(x: 1.0, y: -1.0)
-        str.draw(at: .zero)
+        print("textTopLeft.y: \(textTopLeft.y)  textSize.height: \(textSize.height) ")
+        print("CTM before str.draw: \(ctx.ctm)")
+        
+        
+        
+        let fontSize: CGFloat = 12
+        let font =  NSFont.systemFont(ofSize: fontSize)
+        let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor.red]
+        
+        let attributedString = NSAttributedString(string: label, attributes: attributes)
+        let line = CTLineCreateWithAttributedString(attributedString)
+        
+        ctx.textPosition = .zero
+        CTLineDraw(line, ctx)
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        //str.draw(at: .zero)
         ctx.restoreGState()
 
         // --- Overlap bands ---
-        ctx.setFillColor(CGColor(gray: 0.9, alpha: 0.5))
+        ctx.setFillColor(CGColor(gray: 0.9, alpha: 0.2))
         ctx.setLineDash(phase: 0, lengths: [])
         if column > 0 {
             ctx.fill(CGRect(x: CuttingMarks.markOffset, y: CuttingMarks.markOffset,
