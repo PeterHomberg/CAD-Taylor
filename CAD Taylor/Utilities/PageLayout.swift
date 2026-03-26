@@ -35,9 +35,20 @@ struct PageLayout {
     /// The region of the canvas that maps to page [column, row].
     func canvasRect(column: Int, row: Int) -> CGRect {
         let x = CGFloat(column) * (paperSize.width  - overlap)
+        print("inside PageLayout x: = column * (\(paperSize.width) - \(overlap)")
         let y = CGFloat(row)    * (paperSize.height - overlap)
         return CGRect(x: x, y: y, width: paperSize.width, height: paperSize.height)
     }
+    /// The printable area inside the cutting mark margins.
+    func printableRect() -> CGRect {
+        return CGRect(
+            x: overlap,
+            y: overlap,
+            width:  paperSize.width  - overlap * 2,
+            height: paperSize.height - overlap * 2
+        )
+    }
+
 }
 
 // MARK: - Paper Sizes
@@ -63,49 +74,20 @@ struct CuttingMarks {
     static let markLength: CGFloat = 10   // length of corner marks
     static let markOffset: CGFloat = 5    // distance from edge
     static let markColor = CGColor(gray: 0.4, alpha: 1)
-
-    // Draw corner marks and page label on a CGContext
-    static func draw(in ctx: CGContext,
-                     pageRect: CGRect,
-                     column: Int, row: Int,
-                     totalColumns: Int, totalRows: Int) {
+    let overlap: CGFloat
+    
+    init(overlap: CGFloat){
+        self.overlap = overlap
+    }
+    
+    // Draw overlap indicator and page label on a CGContext
+    func draw(in ctx: CGContext, layout: PageLayout,
+              column: Int, row: Int,
+              totalColumns: Int, totalRows: Int) {
 
         ctx.saveGState()
-        ctx.setStrokeColor(markColor)
-        ctx.setLineWidth(0.5)
-        ctx.setLineDash(phase: 0, lengths: [3, 2])
 
-        // Corner marks — small L-shapes at each corner
-        let corners: [(CGPoint, CGPoint, CGPoint)] = [
-            // top-left
-            (CGPoint(x: markOffset, y: markOffset + markLength),
-             CGPoint(x: markOffset, y: markOffset),
-             CGPoint(x: markOffset + markLength, y: markOffset)),
-            // top-right
-            (CGPoint(x: pageRect.width - markOffset - markLength, y: markOffset),
-             CGPoint(x: pageRect.width - markOffset, y: markOffset),
-             CGPoint(x: pageRect.width - markOffset, y: markOffset + markLength)),
-            // bottom-left
-            (CGPoint(x: markOffset, y: pageRect.height - markOffset - markLength),
-             CGPoint(x: markOffset, y: pageRect.height - markOffset),
-             CGPoint(x: markOffset + markLength, y: pageRect.height - markOffset)),
-            // bottom-right
-            (CGPoint(x: pageRect.width - markOffset - markLength,
-                     y: pageRect.height - markOffset),
-             CGPoint(x: pageRect.width - markOffset,
-                     y: pageRect.height - markOffset),
-             CGPoint(x: pageRect.width - markOffset,
-                     y: pageRect.height - markOffset - markLength))
-        ]
-
-        for (a, corner, b) in corners {
-            ctx.move(to: a)
-            ctx.addLine(to: corner)
-            ctx.addLine(to: b)
-            ctx.strokePath()
-        }
-
-        // Page label — e.g. "Page 2/3 [Col 2, Row 1]"
+        // --- Page label ---
         let label = "Page \(row * totalColumns + column + 1)/\(totalColumns * totalRows)"
             + "  [\(column + 1)×\(row + 1)]"
         let attrs: [NSAttributedString.Key: Any] = [
@@ -113,24 +95,38 @@ struct CuttingMarks {
             .foregroundColor: NSColor.gray
         ]
         let str = NSAttributedString(string: label, attributes: attrs)
-        str.draw(at: CGPoint(x: markOffset + markLength + 4,
-                             y: pageRect.height - markOffset - 10))
+        let textSize = str.size()
 
-        // Overlap indicator — shaded band showing the glue zone
+        // Context is top-left origin. NSAttributedString.draw needs bottom-left origin.
+        // So flip locally just for text: translate to where text top-left should be,
+        // then flip so AppKit sees bottom-left origin at that point.
+        let textTopLeft = CGPoint(
+            x: CuttingMarks.markOffset + CuttingMarks.markLength + 4,
+            y: CuttingMarks.markOffset   // Y measured from top
+        )
+        ctx.saveGState()
+        ctx.translateBy(x: textTopLeft.x, y: textTopLeft.y + textSize.height)
+        ctx.scaleBy(x: 1.0, y: -1.0)
+        str.draw(at: .zero)
+        ctx.restoreGState()
+
+        // --- Overlap bands ---
         ctx.setFillColor(CGColor(gray: 0.9, alpha: 0.5))
         ctx.setLineDash(phase: 0, lengths: [])
-        let overlap: CGFloat = 10
-        if column > 0 {   // left overlap band
-            ctx.fill(CGRect(x: markOffset, y: markOffset,
-                            width: overlap, height: pageRect.height - markOffset * 2))
+        if column > 0 {
+            ctx.fill(CGRect(x: CuttingMarks.markOffset, y: CuttingMarks.markOffset,
+                            width: layout.overlap,
+                            height: layout.paperSize.height - CuttingMarks.markOffset * 2))
         }
-        if row > 0 {      // top overlap band
-            ctx.fill(CGRect(x: markOffset, y: markOffset,
-                            width: pageRect.width - markOffset * 2, height: overlap))
+        if row > 0 {
+            ctx.fill(CGRect(x: CuttingMarks.markOffset, y: CuttingMarks.markOffset,
+                            width: layout.paperSize.width - CuttingMarks.markOffset * 2,
+                            height: layout.overlap))
         }
 
         ctx.restoreGState()
     }
+    
 }
 
 

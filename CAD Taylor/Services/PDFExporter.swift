@@ -80,8 +80,14 @@ class PDFExporter {
             for col in 0..<layout.columns {
                 beginMultiPage(layout: layout, column: col, row: row)
                 drawShapes(shapes)
-                drawCuttingMarks(layout: layout, column: col, row: row)
-                endMultiPage()
+                context.restoreGState()
+                let cuttingMarks = CuttingMarks(overlap: layout.overlap)
+                cuttingMarks.draw(in: context, layout: layout, column: col, row: row, totalColumns: layout.columns, totalRows: layout.rows)
+                // Pop Y-flip → back to raw PDF space
+                context.restoreGState()
+
+                context.endPDFPage()
+                //endMultiPage()
             }
         }
         return finish()
@@ -89,18 +95,23 @@ class PDFExporter {
 
     /// Begins a page clipped to the canvas region for [column, row].
     private func beginMultiPage(layout: PageLayout, column: Int, row: Int) {
+        
         context.beginPDFPage(nil)
-
+        context.saveGState()
         // Flip Y axis (PDF = bottom-left, canvas = top-left)
         context.translateBy(x: 0, y: layout.paperSize.height)
         context.scaleBy(x: 1.0, y: -1.0)
 
         // The canvas region this page covers
         let canvasRect = layout.canvasRect(column: column, row: row)
+        print("canvasRect: \(canvasRect)")
 
         // Clip to printable area (inside cutting mark margins)
-        let printable = printableRect(paperSize: layout.paperSize)
+        let printable = layout.printableRect()
+        context.saveGState()
         context.clip(to: printable)
+        print("printable: \(printable)")
+        print("translateBy: x:\(-canvasRect.minX + printable.minX)")
 
         // Translate so this page's canvas origin maps to the printable area origin.
         // canvasRect.origin is the top-left corner of this page in canvas space.
@@ -112,105 +123,30 @@ class PDFExporter {
 
     private func endMultiPage() {
         context.resetClip()
+        //context.restoreGState()
         context.endPDFPage()
     }
 
-    // MARK: - Cutting and alignment marks
+    struct CornerMark {
+        let verticalEnd: CGPoint
+        let vertex: CGPoint
+        let horizontalEnd: CGPoint
+        
+        init(verticalEnd: CGPoint, vertex: CGPoint, horizontaEnd: CGPoint){
+            self.verticalEnd = verticalEnd
+            self.vertex = vertex
+            self.horizontalEnd = horizontaEnd
+        }
+        
+        func draw(ctx: CGContext) {
+            ctx.move(to: verticalEnd)
+            ctx.addLine(to: vertex)
+            ctx.addLine(to: horizontalEnd)
+            ctx.strokePath()
+        }
 
-    private let markLength: CGFloat = CGFloat(8).pts   // 8 mm
-    private let markOffset: CGFloat = CGFloat(3).pts   // 3 mm from edge
-    private let markLineWidth: CGFloat = 0.3
-
-    /// The printable area inside the cutting mark margins.
-    private func printableRect(paperSize: CGSize) -> CGRect {
-        let inset = markOffset + markLength
-        return CGRect(
-            x: inset,
-            y: inset,
-            width:  paperSize.width  - inset * 2,
-            height: paperSize.height - inset * 2
-        )
     }
-
-    /// Draws corner cutting marks and a page label.
-    /// Must be called AFTER endMultiPage resets the clip/transform.
-    private func drawCuttingMarks(layout: PageLayout,
-                                   column: Int, row: Int) {
-        // Reset to page coordinate system (no canvas transform active here
-        // because we call this before endMultiPage resets the clip but after
-        // drawing shapes — so we save/restore state around it).
-        context.saveGState()
-        context.resetClip()
-
-        // Undo the canvas translation so we draw in paper space
-        // by saving gState before beginMultiPage's transforms — but since
-        // we cannot do that here we reconstruct page coordinates directly.
-        // Solution: draw marks in a fresh gState with identity transform
-        // relative to the PDF page origin (bottom-left).
-        let w = layout.paperSize.width
-        let h = layout.paperSize.height
-        let o = markOffset
-        let l = markLength
-
-        context.setStrokeColor(NSColor.gray.cgColor)
-        context.setLineWidth(markLineWidth)
-        context.setLineDash(phase: 0, lengths: [3, 2])
-        context.setLineCap(.square)
-
-        // Corner marks — in PDF space (Y up, origin bottom-left)
-        // so top-left in PDF is (0, h), bottom-left is (0, 0)
-        let corners: [(CGPoint, CGPoint, CGPoint)] = [
-            // bottom-left (= top-left of page visually)
-            (CGPoint(x: o,     y: o + l), CGPoint(x: o,     y: o), CGPoint(x: o + l, y: o)),
-            // bottom-right
-            (CGPoint(x: w-o-l, y: o),     CGPoint(x: w-o,   y: o), CGPoint(x: w-o,   y: o+l)),
-            // top-left (= bottom-left of page visually)
-            (CGPoint(x: o,     y: h-o-l), CGPoint(x: o,     y: h-o), CGPoint(x: o+l, y: h-o)),
-            // top-right
-            (CGPoint(x: w-o-l, y: h-o),   CGPoint(x: w-o,   y: h-o), CGPoint(x: w-o, y: h-o-l))
-        ]
-
-        for (a, corner, b) in corners {
-            context.beginPath()
-            context.move(to: a)
-            context.addLine(to: corner)
-            context.addLine(to: b)
-            context.strokePath()
-        }
-
-        // Overlap indicator bands — shaded zone showing the glue area
-        context.setLineDash(phase: 0, lengths: [])
-        context.setFillColor(NSColor.gray.withAlphaComponent(0.12).cgColor)
-        let ov = layout.overlap
-
-        if column > 0 {
-            // Left overlap band (in PDF Y-up space: x near 0, full height)
-            context.fill(CGRect(x: o + l,
-                                y: o + l,
-                                width: ov,
-                                height: h - (o + l) * 2))
-        }
-        if row > 0 {
-            // Top overlap band (in PDF Y-up space: near top = large y)
-            context.fill(CGRect(x: o + l,
-                                y: h - o - l - ov,
-                                width: w - (o + l) * 2,
-                                height: ov))
-        }
-
-        // Page label — bottom-left corner inside mark zone
-        let pageNumber = row * layout.columns + column + 1
-        let label = "Page \(pageNumber)/\(layout.totalPages)  [\(column + 1)×\(row + 1)]"
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font:            NSFont.systemFont(ofSize: 6),
-            .foregroundColor: NSColor.gray
-        ]
-        let attrStr = NSAttributedString(string: label, attributes: attrs)
-        // Draw in PDF space — y near bottom of page
-        attrStr.draw(at: CGPoint(x: o + l + 2, y: o + 2))
-
-        context.restoreGState()
-    }
+    
 
     // MARK: - Shape drawing (shared by single and multi-page)
 
