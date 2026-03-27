@@ -139,31 +139,50 @@ struct CuttingMarks {
         ctx.setFillColor(CGColor(gray: 0.9, alpha: 0.8))
         ctx.setLineDash(phase: 0, lengths: [])
         if column == 0 {
-            ctx.fill(CGRect(x: 50, y: 100,
-                            width: 20,
-                            height: 100 ))
+            // right overlap band
             ctx.fill(CGRect(x: layout.paperSize.width - overlap, y: 0,
                             width: layout.overlap,
                             height: layout.paperSize.height ))
         }
         else if column > 0 && column < totalColumns - 1 {
+            // right overlap band
+            ctx.fill(CGRect(x: layout.paperSize.width - overlap, y: 0,
+                            width: layout.overlap,
+                            height: layout.paperSize.height ))
+
+            // left overlap band
             ctx.fill(CGRect(x: 0, y: 0,
                             width: layout.overlap,
                             height: layout.paperSize.height ))
         }
         else if column == totalColumns - 1 {
-            
+            // left overlap band
+            ctx.fill(CGRect(x: 0, y: 0,
+                            width: layout.overlap,
+                            height: layout.paperSize.height ))
+
         }
         if row == 0 {
         
         }
         else if row > 0 && row < totalRows - 1 {
+            // top overlap band
             ctx.fill(CGRect(x: 0, y: 0,
                             width: layout.paperSize.width,
                             height: layout.overlap))
+            // bottom overlap band
+            ctx.fill(CGRect(x: 0, y: layout.paperSize.height - overlap,
+                            width: layout.paperSize.width,
+                            height: layout.overlap))
+
+            
         }
         else if row == totalRows - 1 {
-            
+            // top overlap band
+            ctx.fill(CGRect(x: 0, y: 0,
+                            width: layout.paperSize.width,
+                            height: layout.overlap))
+
         }
 
         ctx.restoreGState()
