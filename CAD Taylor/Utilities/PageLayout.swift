@@ -85,6 +85,72 @@ struct CuttingMarks {
         self.overlap = overlap
     }
     
+    enum PageEdge {
+        case top, bottom, left, right
+    }
+
+    func drawTextEdge(ctx: CGContext, pageSize: CGSize, text: String, fontSize: CGFloat, edge: PageEdge) {
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: fontSize),
+            .foregroundColor: NSColor.red
+        ]
+        let str = NSAttributedString(string: text, attributes: attrs)
+        let textSize = str.size()
+
+        let position: CGPoint
+        switch edge {
+        case .top:
+            position = CGPoint(x: (pageSize.width - textSize.width) / 2, y: 5)
+        case .bottom:
+            position = CGPoint(x: (pageSize.width - textSize.width) / 2, y: pageSize.height - textSize.height - 5)
+        case .left:
+            position = CGPoint(x: 5, y: (pageSize.height - textSize.width) / 2)
+        case .right:
+            position = CGPoint(x: pageSize.width - textSize.height - 5, y: (pageSize.height + textSize.width) / 2)
+        }
+
+        ctx.saveGState()
+
+        if edge == .left || edge == .right {
+            // Rotate 90° around the text's anchor point
+            let cx = position.x + textSize.height / 2
+            let cy = position.y
+            ctx.translateBy(x: cx, y: cy)
+            let angle: CGFloat = edge == .left ? .pi / 2 : -.pi / 2
+            ctx.rotate(by: angle)
+            ctx.translateBy(x: -textSize.width / 2, y: 0)
+            ctx.translateBy(x: 0, y: textSize.height)
+            ctx.scaleBy(x: 1.0, y: -1.0)
+        } else {
+            ctx.translateBy(x: position.x, y: position.y + textSize.height)
+            ctx.scaleBy(x: 1.0, y: -1.0)
+        }
+
+        let line = CTLineCreateWithAttributedString(str)
+        ctx.textPosition = .zero
+        CTLineDraw(line, ctx)
+
+        ctx.restoreGState()
+    }
+    func drawText(ctx: CGContext, position: CGPoint, text: String, fontSize: CGFloat){
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: fontSize),
+            .foregroundColor: NSColor.red
+        ]
+        let str = NSAttributedString(string: text, attributes: attrs)
+        let textSize = str.size()
+        // Context is top-left origin. NSAttributedString.draw needs bottom-left origin.
+        // So flip locally just for text: translate to where text top-left should be,
+        // then flip so AppKit sees bottom-left origin at that point.
+        ctx.saveGState()
+        ctx.translateBy(x: position.x, y: position.y + textSize.height)
+        ctx.scaleBy(x: 1.0, y: -1.0)
+        let line = CTLineCreateWithAttributedString(str)
+        ctx.textPosition = .zero
+        CTLineDraw(line, ctx)
+        ctx.restoreGState()
+    }
+    
     // Draw overlap indicator and page label on a CGContext
     func draw(in ctx: CGContext, layout: PageLayout,
               column: Int, row: Int,
@@ -92,54 +158,63 @@ struct CuttingMarks {
 
         ctx.saveGState()
 
-        // --- Page label ---
+        // ---  labels ---
+        let pageNr       = row * totalColumns + column + 1
+        let upperNeighbor = row > 0                ? pageNr - totalColumns : 0
+        let lowerNeighbor = row < totalRows - 1    ? pageNr + totalColumns : 0
+        let leftNeighbor  = column > 0             ? pageNr - 1            : 0
+        let rightNeighbor = column < totalColumns - 1 ? pageNr + 1         : 0
         let label = "Page \(row * totalColumns + column + 1)/\(totalColumns * totalRows)"
             + "  [\(column + 1)×\(row + 1)]"
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 7),
-            .foregroundColor: NSColor.red
-        ]
-        let str = NSAttributedString(string: label, attributes: attrs)
-        let textSize = str.size()
+        drawText(ctx: ctx,
+                 position: CGPoint(
+                            x: CGFloat(50).pts,
+                            y: CGFloat(10).pts
+                            ),
+                text: label,
+                fontSize: CGFloat(12))
+        
+        if upperNeighbor != 0 {
+            drawText(ctx: ctx,
+                     position: CGPoint(
+                                x: CGFloat(140).pts,
+                                y: CGFloat(10).pts
+                                ),
+                    text: String("^ Page \(upperNeighbor)"),
+                    fontSize: CGFloat(12))
 
-        // Context is top-left origin. NSAttributedString.draw needs bottom-left origin.
-        // So flip locally just for text: translate to where text top-left should be,
-        // then flip so AppKit sees bottom-left origin at that point.
-        let textTopLeft = CGPoint(
-            x: 100,
-            y: 5  // Y measured from top
-        )
-        ctx.saveGState()
-        ctx.translateBy(x: textTopLeft.x, y: textTopLeft.y + textSize.height)
-        ctx.scaleBy(x: 1.0, y: -1.0)
-        print("textTopLeft.y: \(textTopLeft.y)  textSize.height: \(textSize.height) ")
-        print("CTM before str.draw: \(ctx.ctm)")
-        
-        
-        
-        let fontSize: CGFloat = 12
-        let font =  NSFont.systemFont(ofSize: fontSize)
-        let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor.red]
-        
-        let attributedString = NSAttributedString(string: label, attributes: attributes)
-        let line = CTLineCreateWithAttributedString(attributedString)
-        
-        ctx.textPosition = .zero
-        CTLineDraw(line, ctx)
+        }
+        if lowerNeighbor != 0 {
+            drawText(ctx: ctx,
+                     position: CGPoint(
+                                x: CGFloat(140).pts,
+                                y: layout.paperSize.height
+                                ),
+                    text: String("v Page \(lowerNeighbor)"),
+                    fontSize: CGFloat(12))
 
+        }
+        if leftNeighbor != 0 {
+            drawText(ctx: ctx,
+                     position: CGPoint(
+                                x: CGFloat(50).pts,
+                                y: CGFloat(10).pts
+                                ),
+                    text: String("< Page \(leftNeighbor)"),
+                    fontSize: CGFloat(12))
+
+        }
+        if rightNeighbor != 0 {
+            drawText(ctx: ctx,
+                     position: CGPoint(
+                                x: CGFloat(50).pts,
+                                y: CGFloat(10).pts
+                                ),
+                    text: String("> Page \(rightNeighbor)"),
+                    fontSize: CGFloat(12))
+
+        }
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        //str.draw(at: .zero)
-        ctx.restoreGState()
-        print("CTM before mark overlap bands: \(ctx.ctm)")
         // --- Overlap bands ---
         ctx.setFillColor(CGColor(gray: 0.9, alpha: 0.8))
         ctx.setLineDash(phase: 0, lengths: [])
