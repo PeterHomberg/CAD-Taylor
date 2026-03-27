@@ -107,7 +107,7 @@ class PDFExporter {
         print("canvasRect: \(canvasRect)")
 
         // Clip to printable area (inside cutting mark margins)
-        let printable = layout.printableRect()
+        let printable  = layout.printableRect(column: column, row: row)
         context.saveGState()
         context.clip(to: printable)
         print("printable: \(printable)")

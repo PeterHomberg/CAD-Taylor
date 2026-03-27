@@ -40,15 +40,20 @@ struct PageLayout {
         return CGRect(x: x, y: y, width: paperSize.width, height: paperSize.height)
     }
     /// The printable area inside the cutting mark margins.
-    func printableRect() -> CGRect {
+    // In PageLayout — replace printableRect() with this:
+    func printableRect(column: Int, row: Int) -> CGRect {
+        let leftInset   = column > 0 ? overlap : 0
+        let topInset    = row    > 0 ? overlap : 0
+        let rightInset  = column < columns - 1 ? overlap : 0
+        let bottomInset = row    < rows    - 1 ? overlap : 0
+
         return CGRect(
-            x: overlap,
-            y: overlap,
-            width:  paperSize.width  - overlap * 2,
-            height: paperSize.height - overlap * 2
+            x:      leftInset,
+            y:      topInset,
+            width:  paperSize.width  - leftInset - rightInset,
+            height: paperSize.height - topInset  - bottomInset
         )
     }
-
 }
 
 // MARK: - Paper Sizes
