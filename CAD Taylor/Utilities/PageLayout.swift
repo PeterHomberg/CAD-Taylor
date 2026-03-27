@@ -14,7 +14,7 @@ struct PageLayout {
     let canvasSize: CGSize    // full drawing canvas in PDF points
     let overlap: CGFloat      // overlap between adjacent pages in pts (for gluing)
 
-    init(paperSize: CGSize, canvasSize: CGSize, overlap: CGFloat = CGFloat(10).pts) {
+    init(paperSize: CGSize, canvasSize: CGSize, overlap: CGFloat = CGFloat(30).pts) {
         self.paperSize  = paperSize
         self.canvasSize = canvasSize
         self.overlap    = overlap
