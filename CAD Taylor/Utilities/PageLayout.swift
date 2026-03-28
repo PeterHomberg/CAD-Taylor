@@ -97,39 +97,32 @@ struct CuttingMarks {
         let str = NSAttributedString(string: text, attributes: attrs)
         let textSize = str.size()
 
-        let position: CGPoint
-        switch edge {
-        case .top:
-            position = CGPoint(x: (pageSize.width - textSize.width) / 2, y: edgeDistance)
-        case .bottom:
-            position = CGPoint(x: (pageSize.width - textSize.width) / 2, y: pageSize.height - textSize.height - edgeDistance)
-        case .left:
-            position = CGPoint(
-                x: edgeDistance + textSize.height,   // was: 5
-                y: (pageSize.height + textSize.width) / 2
-            )
-        case .right:
-            position = CGPoint(
-                x: pageSize.width - textSize.height - edgeDistance,   // unchanged, but verify
-                y: (pageSize.height - textSize.width) / 2  // was: + textSize.width
-            )        }
-
         ctx.saveGState()
 
-        if edge == .left || edge == .right {
-            // Rotate 90° around the text's anchor point
-            let cx = position.x + textSize.height / 2
-            let cy = position.y
-            ctx.translateBy(x: cx, y: cy)
-            let angle: CGFloat = edge == .left ? .pi / 2 : -.pi / 2
-            ctx.rotate(by: angle)
-            ctx.translateBy(x: -textSize.width / 2, y: 0)
-            ctx.translateBy(x: 0, y: textSize.height)
+        switch edge {
+        case .top:
+            // Anchor = top-left of text, y measured from top
+            ctx.translateBy(x: (pageSize.width - textSize.width) / 2,
+                            y: edgeDistance + textSize.height)
             ctx.scaleBy(x: 1.0, y: -1.0)
-        } else {
-            ctx.translateBy(x: position.x, y: position.y + textSize.height)
+
+        case .bottom:
+            // Anchor = top-left of text, y measured from top
+            ctx.translateBy(x: (pageSize.width - textSize.width) / 2,
+                            y: pageSize.height - edgeDistance)
             ctx.scaleBy(x: 1.0, y: -1.0)
-        }
+
+        case .left:
+            ctx.translateBy(x: edgeDistance + textSize.height,
+                            y: (pageSize.height + textSize.width) / 2)
+            ctx.rotate(by: -.pi / 2)
+            ctx.scaleBy(x: 1.0, y: -1.0)
+
+        case .right:
+            ctx.translateBy(x: pageSize.width - edgeDistance - textSize.height,
+                            y: (pageSize.height - textSize.width) / 2)
+            ctx.rotate(by: .pi / 2)
+            ctx.scaleBy(x: 1.0, y: -1.0)        }
 
         let line = CTLineCreateWithAttributedString(str)
         ctx.textPosition = .zero
