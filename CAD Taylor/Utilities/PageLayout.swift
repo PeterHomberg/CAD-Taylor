@@ -89,7 +89,7 @@ struct CuttingMarks {
         case top, bottom, left, right
     }
 
-    func drawTextEdge(ctx: CGContext, pageSize: CGSize, text: String, fontSize: CGFloat, edge: PageEdge) {
+    func drawTextEdge(ctx: CGContext, pageSize: CGSize, text: String, fontSize: CGFloat, edge: PageEdge, edgeDistance: CGFloat) {
         let attrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: fontSize),
             .foregroundColor: NSColor.red
@@ -100,14 +100,19 @@ struct CuttingMarks {
         let position: CGPoint
         switch edge {
         case .top:
-            position = CGPoint(x: (pageSize.width - textSize.width) / 2, y: 5)
+            position = CGPoint(x: (pageSize.width - textSize.width) / 2, y: edgeDistance)
         case .bottom:
-            position = CGPoint(x: (pageSize.width - textSize.width) / 2, y: pageSize.height - textSize.height - 5)
+            position = CGPoint(x: (pageSize.width - textSize.width) / 2, y: pageSize.height - textSize.height - edgeDistance)
         case .left:
-            position = CGPoint(x: 5, y: (pageSize.height - textSize.width) / 2)
+            position = CGPoint(
+                x: edgeDistance + textSize.height,   // was: 5
+                y: (pageSize.height + textSize.width) / 2
+            )
         case .right:
-            position = CGPoint(x: pageSize.width - textSize.height - 5, y: (pageSize.height + textSize.width) / 2)
-        }
+            position = CGPoint(
+                x: pageSize.width - textSize.height - edgeDistance,   // unchanged, but verify
+                y: (pageSize.height - textSize.width) / 2  // was: + textSize.width
+            )        }
 
         ctx.saveGState()
 
@@ -158,62 +163,6 @@ struct CuttingMarks {
 
         ctx.saveGState()
 
-        // ---  labels ---
-        let pageNr       = row * totalColumns + column + 1
-        let upperNeighbor = row > 0                ? pageNr - totalColumns : 0
-        let lowerNeighbor = row < totalRows - 1    ? pageNr + totalColumns : 0
-        let leftNeighbor  = column > 0             ? pageNr - 1            : 0
-        let rightNeighbor = column < totalColumns - 1 ? pageNr + 1         : 0
-        let label = "Page \(row * totalColumns + column + 1)/\(totalColumns * totalRows)"
-            + "  [\(column + 1)×\(row + 1)]"
-        drawText(ctx: ctx,
-                 position: CGPoint(
-                            x: CGFloat(50).pts,
-                            y: CGFloat(10).pts
-                            ),
-                text: label,
-                fontSize: CGFloat(12))
-        
-        if upperNeighbor != 0 {
-            drawText(ctx: ctx,
-                     position: CGPoint(
-                                x: CGFloat(140).pts,
-                                y: CGFloat(10).pts
-                                ),
-                    text: String("^ Page \(upperNeighbor)"),
-                    fontSize: CGFloat(12))
-
-        }
-        if lowerNeighbor != 0 {
-            drawText(ctx: ctx,
-                     position: CGPoint(
-                                x: CGFloat(140).pts,
-                                y: layout.paperSize.height
-                                ),
-                    text: String("v Page \(lowerNeighbor)"),
-                    fontSize: CGFloat(12))
-
-        }
-        if leftNeighbor != 0 {
-            drawText(ctx: ctx,
-                     position: CGPoint(
-                                x: CGFloat(50).pts,
-                                y: CGFloat(10).pts
-                                ),
-                    text: String("< Page \(leftNeighbor)"),
-                    fontSize: CGFloat(12))
-
-        }
-        if rightNeighbor != 0 {
-            drawText(ctx: ctx,
-                     position: CGPoint(
-                                x: CGFloat(50).pts,
-                                y: CGFloat(10).pts
-                                ),
-                    text: String("> Page \(rightNeighbor)"),
-                    fontSize: CGFloat(12))
-
-        }
         
         // --- Overlap bands ---
         ctx.setFillColor(CGColor(gray: 0.9, alpha: 0.8))
@@ -264,6 +213,46 @@ struct CuttingMarks {
                             height: layout.overlap))
 
         }
+        
+        // ---  labels ---
+        let pageNr       = row * totalColumns + column + 1
+        let upperNeighbor = row > 0                ? pageNr - totalColumns : 0
+        let lowerNeighbor = row < totalRows - 1    ? pageNr + totalColumns : 0
+        let leftNeighbor  = column > 0             ? pageNr - 1            : 0
+        let rightNeighbor = column < totalColumns - 1 ? pageNr + 1         : 0
+        let label = "Page \(row * totalColumns + column + 1)/\(totalColumns * totalRows)"
+            + "  [\(column + 1)×\(row + 1)]"
+        
+        /*
+        drawText(ctx: ctx,
+                 position: CGPoint(
+                            x: CGFloat(50).pts,
+                            y: CGFloat(10).pts
+                            ),
+                text: label,
+                fontSize: CGFloat(12))
+         */
+        
+        if upperNeighbor != 0 {
+            let text: String = label + "          ^ page \(upperNeighbor)"
+            drawTextEdge(ctx: ctx, pageSize: layout.paperSize, text: text, fontSize: 12, edge: .top, edgeDistance: overlap)
+        }
+        if lowerNeighbor != 0 {
+            let text: String = label + "          v page \(lowerNeighbor)"
+            drawTextEdge(ctx: ctx, pageSize: layout.paperSize, text: text, fontSize: 12, edge: .bottom, edgeDistance: overlap)
+
+        }
+        if leftNeighbor != 0 {
+            let text: String = label + "          < page \(leftNeighbor)"
+            drawTextEdge(ctx: ctx, pageSize: layout.paperSize, text: text, fontSize: 12, edge: .left, edgeDistance: overlap)
+
+        }
+        if rightNeighbor != 0 {
+            let text: String = label + "          > page \(rightNeighbor)"
+            drawTextEdge(ctx: ctx, pageSize: layout.paperSize, text: text, fontSize: 12, edge: .right, edgeDistance: overlap)
+
+        }
+
 
         ctx.restoreGState()
     }
