@@ -38,6 +38,8 @@ struct DrawingCanvasView: View {
     
     @State private var selectedPaper: PaperSize = .a4
     
+    @ObservedObject var recentManager: RecentDocumentsManager
+    
     var body: some View {
         HStack(spacing: 0) {
             
@@ -152,7 +154,8 @@ struct DrawingCanvasView: View {
             canvasSize: canvasSize,
             onExport: exportPDF,
             onSave: saveDrawing,
-            onOpen: openDrawing
+            onOpen: openDrawing,
+            onOpenRecent: onOpenRecent
         )
 
     }
@@ -333,7 +336,7 @@ struct DrawingCanvasView: View {
     }
     
     private func openDrawing() {
-        DrawingSerializer.openDrawingWithDialog { result in
+        DrawingSerializer.openDrawingWithDialog { result, url in
             switch result {
             case .success(let data):
                 shapes = data.shapes
@@ -341,8 +344,29 @@ struct DrawingCanvasView: View {
                 currentShape = nil
                 currentCoordinates = CGPoint.zero
                 selectedShapeID = nil
+                // Register with "Open Recent" — add this line:
+                if let url {
+                    NSDocumentController.shared.noteNewRecentDocumentURL(url)
+                    recentManager.refresh()
+                }
             case .failure(let error):
                 print("Failed to open drawing: \(error)")
+            }
+        }
+    }
+    private func onOpenRecent(_ url: URL) {
+        DrawingSerializer.loadDrawing(from: url) { result in
+            switch result {
+            case .success(let data):
+                shapes = data.shapes
+                canvasSize = data.canvasSize
+                currentShape = nil
+                currentCoordinates = CGPoint.zero
+                selectedShapeID = nil
+                NSDocumentController.shared.noteNewRecentDocumentURL(url)
+                recentManager.refresh()
+            case .failure(let error):
+                print("Failed to open recent drawing: \(error)")
             }
         }
     }

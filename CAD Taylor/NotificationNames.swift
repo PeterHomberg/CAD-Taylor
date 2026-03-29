@@ -16,4 +16,5 @@ extension Notification.Name {
     static let zoomIn = Notification.Name("zoomIn")
     static let zoomOut = Notification.Name("zoomOut")
     static let resetZoom = Notification.Name("resetZoom")
+    static let openRecentDrawing = Notification.Name("openRecentDrawing")
 }

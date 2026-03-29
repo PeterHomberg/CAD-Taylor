@@ -16,6 +16,7 @@ struct NotificationHandlerModifier: ViewModifier {
     let onExport: () -> Void
     let onSave: () -> Void
     let onOpen: () -> Void
+    let onOpenRecent: (URL) -> Void
     
     func body(content: Content) -> some View {
         content
@@ -30,6 +31,11 @@ struct NotificationHandlerModifier: ViewModifier {
             }
             .onReceive(NotificationCenter.default.publisher(for: .openDrawing)) { _ in
                 onOpen()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openRecentDrawing)) { notification in
+                if let url = notification.object as? URL {
+                    onOpenRecent(url)
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: .savePDF)) { _ in
                 onExport()
@@ -69,7 +75,8 @@ extension View {
         canvasSize: CGSize,
         onExport: @escaping () -> Void,
         onSave: @escaping () -> Void,
-        onOpen: @escaping () -> Void
+        onOpen: @escaping () -> Void,
+        onOpenRecent: @escaping (URL) -> Void
     ) -> some View {
         modifier(NotificationHandlerModifier(
             shapes: shapes,
@@ -80,7 +87,8 @@ extension View {
             canvasSize: canvasSize,
             onExport: onExport,
             onSave: onSave,
-            onOpen: onOpen
+            onOpen: onOpen,
+            onOpenRecent: onOpenRecent
         ))
     }
 }

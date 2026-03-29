@@ -8,13 +8,14 @@ import SwiftUI
 @main
 struct CADTaylorApp: App {
     @State private var showInMillimeters = true
+    @StateObject private var recentManager = RecentDocumentsManager()
     
     var body: some Scene {
         WindowGroup {
-            DrawingCanvasView(showInMillimeters: $showInMillimeters)
+            DrawingCanvasView(showInMillimeters: $showInMillimeters, recentManager: recentManager)
         }
         .commands {
-            MenuCommands()
+            MenuCommands(recentManager: recentManager)
             // Toggle inline, because it needs State binding
             CommandGroup(before: .sidebar) {
                 Toggle("Show in Millimeters", isOn: $showInMillimeters)

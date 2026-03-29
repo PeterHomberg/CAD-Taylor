@@ -6,7 +6,7 @@
 import SwiftUI
 
 struct MenuCommands: Commands {
-        
+    @ObservedObject var recentManager: RecentDocumentsManager
     var body: some Commands {
         // File Menu
         CommandGroup(replacing: .newItem) {
@@ -21,6 +21,23 @@ struct MenuCommands: Commands {
                 NotificationCenter.default.post(name: .openDrawing, object: nil)
             }
             .keyboardShortcut("o", modifiers: .command)
+            
+            // Manual Open Recent Menu
+            Menu("Open Recent") {
+                ForEach(recentManager.recentURLs, id: \.self) { url in
+                    Button(url.lastPathComponent) {
+                        // openFile sends the URL via notification
+                        NotificationCenter.default.post(name: .openRecentDrawing, object: url)
+                    }
+                }
+                if !recentManager.recentURLs.isEmpty {
+                    Divider()
+                    Button("Clear Menu") {
+                        recentManager.clear()
+                    }
+                }
+            }
+            .disabled(recentManager.recentURLs.isEmpty)
             
             Divider()
             

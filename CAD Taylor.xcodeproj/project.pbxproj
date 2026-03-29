@@ -18,6 +18,8 @@
 		FB7C43E52EFBC012006ED97A /* FIX_RECTANGLE_CLOSING.md in Resources */ = {isa = PBXBuildFile; fileRef = FB7C43E12EFBC011006ED97A /* FIX_RECTANGLE_CLOSING.md */; };
 		FB7C43E62EFBC012006ED97A /* VISUAL_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = FB7C43E22EFBC012006ED97A /* VISUAL_GUIDE.md */; };
 		FB7C43E72EFBC012006ED97A /* UPDATE_SELECT_MODE.md in Resources */ = {isa = PBXBuildFile; fileRef = FB7C43E32EFBC012006ED97A /* UPDATE_SELECT_MODE.md */; };
+		FB7EC3062F78D6F9006FBB4E /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FB7EC3052F78D6F9006FBB4E /* Info.plist */; };
+		FB7EC30A2F78DE3F006FBB4E /* RecentDocumentsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB7EC3092F78DE3F006FBB4E /* RecentDocumentsManager.swift */; };
 		FB890A8B2F6A6F7100EE4B30 /* EditToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB890A8A2F6A6F7100EE4B30 /* EditToolbar.swift */; };
 		FB890A8E2F6AA05A00EE4B30 /* push-all.sh in Resources */ = {isa = PBXBuildFile; fileRef = FB890A8D2F6AA05A00EE4B30 /* push-all.sh */; };
 		FB9900012EF90516007D4364 /* ShapeResizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB9900002EF90516007D4364 /* ShapeResizer.swift */; };
@@ -56,6 +58,8 @@
 		FB7C43E12EFBC011006ED97A /* FIX_RECTANGLE_CLOSING.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = FIX_RECTANGLE_CLOSING.md; sourceTree = "<group>"; };
 		FB7C43E22EFBC012006ED97A /* VISUAL_GUIDE.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = VISUAL_GUIDE.md; sourceTree = "<group>"; };
 		FB7C43E32EFBC012006ED97A /* UPDATE_SELECT_MODE.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = UPDATE_SELECT_MODE.md; sourceTree = "<group>"; };
+		FB7EC3052F78D6F9006FBB4E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		FB7EC3092F78DE3F006FBB4E /* RecentDocumentsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentDocumentsManager.swift; sourceTree = "<group>"; };
 		FB890A8A2F6A6F7100EE4B30 /* EditToolbar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EditToolbar.swift; sourceTree = "<group>"; };
 		FB890A8D2F6AA05A00EE4B30 /* push-all.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = "push-all.sh"; sourceTree = "<group>"; };
 		FB9900002EF90516007D4364 /* ShapeResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeResizer.swift; sourceTree = "<group>"; };
@@ -119,14 +123,16 @@
 		FBE90E3A2E2B7E2E00C0CCC3 /* CAD Taylor */ = {
 			isa = PBXGroup;
 			children = (
-				FBF935692E939263003618E6 /* Utilities */,
-				FBF935622E939184003618E6 /* Views */,
-				FBF9355F2E93911A003618E6 /* Services */,
 				FBE90E3B2E2B7E2E00C0CCC3 /* CADTaylorApp.swift */,
 				FBF935582E938FE0003618E6 /* MenuCommands.swift */,
 				FBF9355A2E939050003618E6 /* NotificationNames.swift */,
+				FB7EC3092F78DE3F006FBB4E /* RecentDocumentsManager.swift */,
+				FBF935692E939263003618E6 /* Utilities */,
+				FBF935622E939184003618E6 /* Views */,
+				FBF9355F2E93911A003618E6 /* Services */,
 				FBF9355C2E9390AC003618E6 /* Models */,
 				FBE90E3F2E2B7E3000C0CCC3 /* Assets.xcassets */,
+				FB7EC3052F78D6F9006FBB4E /* Info.plist */,
 				FBE90E442E2B7E3000C0CCC3 /* CAD_Taylor.entitlements */,
 				FBE90E412E2B7E3000C0CCC3 /* Preview Content */,
 				FBF9356C2E939F20003618E6 /* WindowManager.swift */,
@@ -251,6 +257,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FB7EC3062F78D6F9006FBB4E /* Info.plist in Resources */,
 				FB7C43E52EFBC012006ED97A /* FIX_RECTANGLE_CLOSING.md in Resources */,
 				FBE90E432E2B7E3000C0CCC3 /* Preview Assets.xcassets in Resources */,
 				FB7C43E72EFBC012006ED97A /* UPDATE_SELECT_MODE.md in Resources */,
@@ -274,6 +281,7 @@
 				FBE4F7B62F6BEF11004B3253 /* PageGridPreview.swift in Sources */,
 				FBF935612E93913C003618E6 /* PDFExporter.swift in Sources */,
 				FBF935592E938FE0003618E6 /* MenuCommands.swift in Sources */,
+				FB7EC30A2F78DE3F006FBB4E /* RecentDocumentsManager.swift in Sources */,
 				FBE4F7B22F6BEB1A004B3253 /* PrintSetupView.swift in Sources */,
 				FBF9355E2E9390E1003618E6 /* Line.swift in Sources */,
 				FBE4F7B42F6BEBE5004B3253 /* PageLayout.swift in Sources */,
