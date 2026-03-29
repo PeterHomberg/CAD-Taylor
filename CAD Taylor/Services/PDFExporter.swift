@@ -7,6 +7,8 @@
 import AppKit
 import CoreGraphics
 import PDFKit
+import UniformTypeIdentifiers
+
 
 // MARK: - Page Layout
 
@@ -241,25 +243,69 @@ class PDFExporter {
         let data = exportMultiPagePDF(shapes: shapes, layout: layout)
         saveWithDialog(data: data, filename: "canvas_drawing_tiled_\(layout.columns)x\(layout.rows)")
     }
-
     private func saveWithDialog(data: Data, filename: String) {
-        let savePanel = NSSavePanel()
-        savePanel.title                 = "Save Canvas Drawing"
-        savePanel.allowedContentTypes   = [.pdf]
-        savePanel.nameFieldStringValue  = "\(filename)_\(Int(Date().timeIntervalSince1970)).pdf"
-        savePanel.canCreateDirectories  = true
+        // First try: let user pick existing file to overwrite
+        let openPanel = NSOpenPanel()
+        openPanel.title                = "Save Canvas Drawing"
+        openPanel.prompt               = "Overwrite"
+        openPanel.allowedContentTypes  = [UTType.pdf]
+        openPanel.allowsMultipleSelection = false
+        openPanel.canChooseDirectories = false
+        openPanel.canCreateDirectories = true
+        openPanel.nameFieldLabel       = "Save As:"
+        openPanel.showsHiddenFiles     = false
 
-        savePanel.begin { response in
-            guard response == .OK, let url = savePanel.url else { return }
-            do {
-                try data.write(to: url)
-                print("PDF saved: \(url.lastPathComponent)")
-                NSWorkspace.shared.activateFileViewerSelecting([url])
-            } catch {
-                print("Error saving PDF: \(error)")
+        // Also allow saving as new file
+        let savePanel = NSSavePanel()
+        savePanel.title                = "Save Canvas Drawing"
+        savePanel.allowedContentTypes  = [UTType.pdf]
+        savePanel.nameFieldStringValue = "\(filename)_\(Int(Date().timeIntervalSince1970)).pdf"
+        savePanel.canCreateDirectories = true
+        savePanel.allowsOtherFileTypes = false
+        savePanel.isExtensionHidden    = false
+
+        // Show an alert first asking what the user wants
+        let alert = NSAlert()
+        alert.messageText     = "Save PDF"
+        alert.informativeText = "Do you want to overwrite an existing PDF or save as a new file?"
+        alert.addButton(withTitle: "Overwrite Existing")
+        alert.addButton(withTitle: "Save as New")
+        alert.addButton(withTitle: "Cancel")
+
+        let response = alert.runModal()
+
+        switch response {
+        case .alertFirstButtonReturn:  // Overwrite Existing
+            openPanel.begin { response in
+                guard response == .OK, let url = openPanel.url else { return }
+                self.writeData(data, to: url)
             }
+        case .alertSecondButtonReturn:  // Save as New
+            savePanel.begin { response in
+                guard response == .OK, let url = savePanel.url else { return }
+                self.writeData(data, to: url)
+            }
+        default:  // Cancel
+            break
         }
     }
+
+    private func writeData(_ data: Data, to url: URL) {
+        do {
+            try data.write(to: url, options: .atomic)
+            print("PDF saved: \(url.lastPathComponent)")
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        } catch {
+            print("Error saving PDF: \(error)")
+            let alert = NSAlert()
+            alert.messageText     = "Save Failed"
+            alert.informativeText = "Could not save the PDF: \(error.localizedDescription)"
+            alert.alertStyle      = .critical
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+        }
+    }
+
 
     // MARK: - Open dialog
 

@@ -48,45 +48,6 @@ class DrawingSerializer {
         }
     }
     
-    // Legacy: Save drawing to file with dialog (backwards compatibility)
-    static func saveDrawingWithDialog(lines: [Line], canvasSize: CGSize) {
-        let document = DrawingDocument(lines: lines, canvasSize: canvasSize)
-        
-        guard let jsonData = try? JSONEncoder().encode(document) else {
-            print("Error encoding drawing data")
-            return
-        }
-        
-        let savePanel = NSSavePanel()
-        savePanel.title = "Save Drawing"
-        savePanel.allowedContentTypes = [.json]
-        savePanel.nameFieldStringValue = "drawing_\(Date().timeIntervalSince1970).json"
-        savePanel.canCreateDirectories = true
-        savePanel.allowsOtherFileTypes = false
-        savePanel.isExtensionHidden = false
-        
-        // Enable overwriting existing files
-        savePanel.begin { response in
-            if response == .OK, let url = savePanel.url {
-                do {
-                    // Write with .atomic option to safely overwrite
-                    try jsonData.write(to: url, options: .atomic)
-                    print("Drawing saved successfully: \(url.lastPathComponent)")
-                    NSWorkspace.shared.activateFileViewerSelecting([url])
-                } catch {
-                    print("Error saving drawing: \(error)")
-                    // Show error alert
-                    let alert = NSAlert()
-                    alert.messageText = "Save Failed"
-                    alert.informativeText = "Could not save the drawing: \(error.localizedDescription)"
-                    alert.alertStyle = .critical
-                    alert.addButton(withTitle: "OK")
-                    alert.runModal()
-                }
-            }
-        }
-    }
-    
     // NEU: Open drawing with shapes support
     static func openDrawingWithDialog(completion:
                                       @escaping (Result<(shapes: [Shape],
