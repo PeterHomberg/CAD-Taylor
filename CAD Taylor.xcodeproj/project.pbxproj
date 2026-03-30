@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FB3572EE2F7A431B00CA4F80 /* RulerViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB3572ED2F7A431B00CA4F80 /* RulerViews.swift */; };
 		FB5B17342EB460B800128AD0 /* drawing_document.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB5B17332EB460B800128AD0 /* drawing_document.swift */; };
 		FB5B17362EB461EE00128AD0 /* drawing_serializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB5B17352EB461EE00128AD0 /* drawing_serializer.swift */; };
 		FB5B17382EB482AE00128AD0 /* coordinate_converter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB5B17372EB482AE00128AD0 /* coordinate_converter.swift */; };
@@ -45,6 +46,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		FB3572ED2F7A431B00CA4F80 /* RulerViews.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RulerViews.swift; sourceTree = "<group>"; };
 		FB5B17332EB460B800128AD0 /* drawing_document.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = drawing_document.swift; sourceTree = "<group>"; };
 		FB5B17352EB461EE00128AD0 /* drawing_serializer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = drawing_serializer.swift; sourceTree = "<group>"; };
 		FB5B17372EB482AE00128AD0 /* coordinate_converter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = coordinate_converter.swift; sourceTree = "<group>"; };
@@ -169,6 +171,7 @@
 		FBF935622E939184003618E6 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				FB3572ED2F7A431B00CA4F80 /* RulerViews.swift */,
 				FB890A8A2F6A6F7100EE4B30 /* EditToolbar.swift */,
 				FBF935632E9391A1003618E6 /* DrawingCanvasView.swift */,
 				FBF935672E939233003618E6 /* DrawingView.swift */,
@@ -275,6 +278,7 @@
 				FBE4F7D52F6FA863004B3253 /* CanvasSetupView.swift in Sources */,
 				FB6E2C312EDBE27E00E8EF11 /* HitTesting.swift in Sources */,
 				FB5B17362EB461EE00128AD0 /* drawing_serializer.swift in Sources */,
+				FB3572EE2F7A431B00CA4F80 /* RulerViews.swift in Sources */,
 				FBE4F7B62F6BEF11004B3253 /* PageGridPreview.swift in Sources */,
 				FBF935612E93913C003618E6 /* PDFExporter.swift in Sources */,
 				FBF935592E938FE0003618E6 /* MenuCommands.swift in Sources */,

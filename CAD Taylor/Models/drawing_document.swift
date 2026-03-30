@@ -7,18 +7,11 @@ import Foundation
 import CoreGraphics
 
 struct DrawingDocument: Codable {
-    //var lines: [SerializableLine]
     var shapes: [SerializableShape]?
     var canvasSize: SerializableSize
     var version: String = "1.0"
 
     // MARK: - Serializable types
-
-    struct SerializableLine: Codable {
-        var points: [SerializablePoint]
-        var color: String
-        var width: Double
-    }
 
     struct SerializableShape: Codable {
         var id: String

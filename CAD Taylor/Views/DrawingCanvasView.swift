@@ -45,34 +45,59 @@ struct DrawingCanvasView: View {
             
             // MARK: - Main canvas area
             VStack(spacing: 0) {
-                ZStack(alignment: .topLeading) {
-                    DrawingView(
-                        model: model,
-                        shapes: shapes,
-                        canvasSize: $canvasSize,
-                        zoomLevel: $zoomLevel,
-                        selectedShapeID: selectedShapeID,
-                        editMode: editMode,
-                        onMouseMoved: { location in
-                            currentCoordinates = location
-                        },
-                        onMouseDown: { location in
-                            mouseDownLocation = location
-                            handleMouseDown(at: location)
-                        },
-                        onMouseDragged: { location in
-                            handleMouseDragged(at: location)
-                        },
-                        onMouseUp: { location in
-                            handleMouseUp(at: location)
-                        },
-                        onShapeCommitted: { shape in
-                            shapes.append(shape)
-                        }
+                // MARK: - Ruler row
+                HStack(spacing: 0) {
+                    RulerCorner()
+                    HRulerView(
+                        canvasSize:    canvasSize,
+                        zoomLevel:     zoomLevel,
+                        cursorX:       currentCoordinates.x,
+                        inMillimeters: showInMillimeters
                     )
+                    .frame(height: 20)
+                    .frame(maxWidth: .infinity)
                 }
-                .background(Color(NSColor.windowBackgroundColor))
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(height: 20)
+                // ── Canvas + vertical ruler ──────────────────────────────────
+                HStack(spacing: 0) {
+                    VRulerView(
+                        canvasSize:    canvasSize,
+                        zoomLevel:     zoomLevel,
+                        cursorY:       currentCoordinates.y,
+                        inMillimeters: showInMillimeters
+                    )
+                    .frame(width: 20)
+                    .frame(maxHeight: .infinity)
+                    
+                    ZStack(alignment: .topLeading) {
+                        DrawingView(
+                            model: model,
+                            shapes: shapes,
+                            canvasSize: $canvasSize,
+                            zoomLevel: $zoomLevel,
+                            selectedShapeID: selectedShapeID,
+                            editMode: editMode,
+                            onMouseMoved: { location in
+                                currentCoordinates = location
+                            },
+                            onMouseDown: { location in
+                                mouseDownLocation = location
+                                handleMouseDown(at: location)
+                            },
+                            onMouseDragged: { location in
+                                handleMouseDragged(at: location)
+                            },
+                            onMouseUp: { location in
+                                handleMouseUp(at: location)
+                            },
+                            onShapeCommitted: { shape in
+                                shapes.append(shape)
+                            }
+                        )
+                    }
+                    .background(Color(NSColor.windowBackgroundColor))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
                 
                 // MARK: - Bottom toolbar
                 HStack(spacing: 10) {
@@ -157,7 +182,7 @@ struct DrawingCanvasView: View {
             onOpen: openDrawing,
             onOpenRecent: onOpenRecent
         )
-
+        
     }
     // MARK: - View Components
     

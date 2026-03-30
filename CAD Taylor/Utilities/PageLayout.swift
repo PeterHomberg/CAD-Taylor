@@ -14,7 +14,7 @@ struct PageLayout {
     let canvasSize: CGSize    // full drawing canvas in PDF points
     let overlap: CGFloat      // overlap between adjacent pages in pts (for gluing)
 
-    init(paperSize: CGSize, canvasSize: CGSize, overlap: CGFloat = CGFloat(30).pts) {
+    init(paperSize: CGSize, canvasSize: CGSize, overlap: CGFloat = CGFloat(10).pts) {
         self.paperSize  = paperSize
         self.canvasSize = canvasSize
         self.overlap    = overlap
@@ -160,7 +160,7 @@ struct CuttingMarks {
         // --- Overlap bands ---
         ctx.setFillColor(CGColor(gray: 0.9, alpha: 0.8))
         ctx.setLineDash(phase: 0, lengths: [])
-        if column == 0 {
+        if column == 0 && totalColumns > 1{
             // right overlap band
             ctx.fill(CGRect(x: layout.paperSize.width - overlap, y: 0,
                             width: layout.overlap,
@@ -177,15 +177,19 @@ struct CuttingMarks {
                             width: layout.overlap,
                             height: layout.paperSize.height ))
         }
-        else if column == totalColumns - 1 {
+        else if column > 0 && column == totalColumns - 1 {
             // left overlap band
             ctx.fill(CGRect(x: 0, y: 0,
                             width: layout.overlap,
                             height: layout.paperSize.height ))
 
         }
-        if row == 0 {
-        
+        if row == 0 && totalColumns > 1{
+            // bottom overlap band
+            ctx.fill(CGRect(x: 0, y: layout.paperSize.height - overlap,
+                            width: layout.paperSize.width,
+                            height: layout.overlap))
+
         }
         else if row > 0 && row < totalRows - 1 {
             // top overlap band
@@ -199,7 +203,7 @@ struct CuttingMarks {
 
             
         }
-        else if row == totalRows - 1 {
+        else if row > 0 && row == totalRows - 1 {
             // top overlap band
             ctx.fill(CGRect(x: 0, y: 0,
                             width: layout.paperSize.width,
