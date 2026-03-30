@@ -7,7 +7,7 @@ import Foundation
 import CoreGraphics
 
 struct DrawingDocument: Codable {
-    var lines: [SerializableLine]
+    //var lines: [SerializableLine]
     var shapes: [SerializableShape]?
     var canvasSize: SerializableSize
     var version: String = "1.0"
@@ -79,15 +79,6 @@ struct DrawingDocument: Codable {
             }
         }
 
-        // Keep lines for backwards compatibility (bezier shapes are skipped here)
-        self.lines = shapes.compactMap { shape in
-            guard case .points(let pts) = shape.geometry else { return nil }
-            return SerializableLine(
-                points: pts.map { SerializablePoint(x: Double($0.x), y: Double($0.y)) },
-                color: shape.color,
-                width: Double(shape.width)
-            )
-        }
 
         self.canvasSize = SerializableSize(
             width: Double(canvasSize.width),
@@ -95,33 +86,9 @@ struct DrawingDocument: Codable {
         )
     }
 
-    // MARK: - Legacy init from Lines
-
-    init(lines: [Line], canvasSize: CGSize) {
-        self.lines = lines.map { line in
-            SerializableLine(
-                points: line.points.map { SerializablePoint(x: Double($0.x), y: Double($0.y)) },
-                color: line.color,
-                width: Double(line.width)
-            )
-        }
-        self.canvasSize = SerializableSize(
-            width: Double(canvasSize.width),
-            height: Double(canvasSize.height)
-        )
-    }
 
     // MARK: - Convert to app model
 
-    func toLines() -> [Line] {
-        return lines.map { serializableLine in
-            Line(
-                points: serializableLine.points.map { CGPoint(x: CGFloat($0.x), y: CGFloat($0.y)) },
-                color: serializableLine.color,
-                width: CGFloat(serializableLine.width)
-            )
-        }
-    }
 
     func toShapes() -> [Shape] {
         // Prefer shapes array if available (new format)
@@ -147,13 +114,7 @@ struct DrawingDocument: Codable {
                 return Shape(type: type, points: points, color: s.color, width: CGFloat(s.width))
             }
         }
-
-        // Fallback: load from legacy lines array
-        return lines.map { line in
-            let points = line.points.map { CGPoint(x: CGFloat($0.x), y: CGFloat($0.y)) }
-            let type: ShapeType = (points.count == 4) ? .rectangle : .freehand
-            return Shape(type: type, points: points, color: line.color, width: CGFloat(line.width))
-        }
+        return []
     }
 
     func toCanvasSize() -> CGSize {

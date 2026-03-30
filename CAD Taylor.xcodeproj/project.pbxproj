@@ -37,7 +37,6 @@
 		FBE90E432E2B7E3000C0CCC3 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FBE90E422E2B7E3000C0CCC3 /* Preview Assets.xcassets */; };
 		FBF935592E938FE0003618E6 /* MenuCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF935582E938FE0003618E6 /* MenuCommands.swift */; };
 		FBF9355B2E939050003618E6 /* NotificationNames.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF9355A2E939050003618E6 /* NotificationNames.swift */; };
-		FBF9355E2E9390E1003618E6 /* Line.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF9355D2E9390E1003618E6 /* Line.swift */; };
 		FBF935612E93913C003618E6 /* PDFExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF935602E93913C003618E6 /* PDFExporter.swift */; };
 		FBF935642E9391A1003618E6 /* DrawingCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF935632E9391A1003618E6 /* DrawingCanvasView.swift */; };
 		FBF935682E939233003618E6 /* DrawingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBF935672E939233003618E6 /* DrawingView.swift */; };
@@ -79,7 +78,6 @@
 		FBE90E442E2B7E3000C0CCC3 /* CAD_Taylor.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CAD_Taylor.entitlements; sourceTree = "<group>"; };
 		FBF935582E938FE0003618E6 /* MenuCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuCommands.swift; sourceTree = "<group>"; };
 		FBF9355A2E939050003618E6 /* NotificationNames.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationNames.swift; sourceTree = "<group>"; };
-		FBF9355D2E9390E1003618E6 /* Line.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Line.swift; sourceTree = "<group>"; };
 		FBF935602E93913C003618E6 /* PDFExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFExporter.swift; sourceTree = "<group>"; };
 		FBF935632E9391A1003618E6 /* DrawingCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingCanvasView.swift; sourceTree = "<group>"; };
 		FBF935672E939233003618E6 /* DrawingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingView.swift; sourceTree = "<group>"; };
@@ -152,7 +150,6 @@
 			isa = PBXGroup;
 			children = (
 				FB5B17332EB460B800128AD0 /* drawing_document.swift */,
-				FBF9355D2E9390E1003618E6 /* Line.swift */,
 				FBBB353B2EBC3F720067C79C /* DrawingMode.swift */,
 				FB6E2C2C2EDBE1C600E8EF11 /* Shape.swift */,
 				FB6E2C2E2EDBE22B00E8EF11 /* InteractionMode.swift */,
@@ -283,7 +280,6 @@
 				FBF935592E938FE0003618E6 /* MenuCommands.swift in Sources */,
 				FB7EC30A2F78DE3F006FBB4E /* RecentDocumentsManager.swift in Sources */,
 				FBE4F7B22F6BEB1A004B3253 /* PrintSetupView.swift in Sources */,
-				FBF9355E2E9390E1003618E6 /* Line.swift in Sources */,
 				FBE4F7B42F6BEBE5004B3253 /* PageLayout.swift in Sources */,
 				FB890A8B2F6A6F7100EE4B30 /* EditToolbar.swift in Sources */,
 				FBBB353E2EBC3FB60067C79C /* DrawingToolbar.swift in Sources */,

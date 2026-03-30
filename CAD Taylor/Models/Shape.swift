@@ -145,12 +145,6 @@ struct Shape: Identifiable, Codable {
     }
 
     /// Migration init from Line.
-    init(from line: Line, type: ShapeType) {
-        self.type = type
-        self.geometry = .points(line.points)
-        self.color = line.color
-        self.width = line.width
-    }
     static func arcParameters(from points: [CGPoint]) -> (center: CGPoint, radius: CGFloat, startAngle: CGFloat, endAngle: CGFloat) {
         precondition(points.count >= 3, "Need at least 3 points")
         

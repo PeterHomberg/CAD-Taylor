@@ -211,13 +211,4 @@ class DrawingSerializer {
     }
     
     
-    // Export to JSON string (for debugging or other uses)
-    static func exportToJSON(lines: [Line], canvasSize: CGSize) -> String? {
-        let document = DrawingDocument(lines: lines, canvasSize: canvasSize)
-        guard let jsonData = try? JSONEncoder().encode(document),
-              let jsonString = String(data: jsonData, encoding: .utf8) else {
-            return nil
-        }
-        return jsonString
-    }
 }

@@ -188,7 +188,7 @@ class DrawingNSView: NSView {
     // events to us if they hit the canvas.
     
     // MARK: - Mouse Events
-
+// MARK: - Mouse moved
     override func mouseMoved(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
         delegate?.drawingView(self, newCoordinate: location)
@@ -205,6 +205,7 @@ class DrawingNSView: NSView {
         onMouseMoved?(location)
     }
 
+    //MARK: - Mouse down
     override func mouseDown(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
         
@@ -237,6 +238,7 @@ class DrawingNSView: NSView {
         }
     }
 
+    //MARK: - Mouse dragged
     override func mouseDragged(with event: NSEvent) {
         guard dragStartedInside else { return }
         let location = convert(event.locationInWindow, from: nil)
