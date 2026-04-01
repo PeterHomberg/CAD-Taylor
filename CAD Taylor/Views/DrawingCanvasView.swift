@@ -1,28 +1,30 @@
 // ============================================
 // File: DrawingCanvasView.swift
 // Updated for Integrated NSScrollView and Custom Button Styles
+// GRID UPDATE: Added GridSettings state, bottom-toolbar controls,
+//              and snap wiring in all mouse handlers.
 // ============================================
 
 import SwiftUI
 
 struct DrawingCanvasView: View {
     static let a4Size = CGSize(width: CGFloat(210).pts, height: CGFloat(297).pts)
-    
+
     // Shape-based system
     @State private var shapes: [Shape] = []
     @State private var currentShape: Shape?
     @State private var temporaryShape: TemporaryShape?
     @State private var selectedShapeID: UUID?
-    
+
     // Interaction modes
     @State private var editMode: EditMode = .move
-    
+
     // Drag state for editing
     @State private var dragStartPoint: CGPoint?
     @State private var originalShape: Shape?
     @State private var activeResizeHandle: ResizeHandle?
     @State private var activeBezierHit: HitResult?
-    
+
     // UI state
     @State private var currentCoordinates = CGPoint.zero
     @State private var canvasSize = DrawingCanvasView.a4Size
@@ -31,18 +33,23 @@ struct DrawingCanvasView: View {
     @State private var mouseDownLocation: CGPoint?
     @Binding var showInMillimeters: Bool
     @StateObject var model = DrawingModel()
-    
+
     // Print setup
     @State private var showPrintSetup = false
     @State private var showCanvasSetup = false
-    
+
     @State private var selectedPaper: PaperSize = .a4
-    
+
     @ObservedObject var recentManager: RecentDocumentsManager
-    
+
+    // MARK: - Grid (NEW)
+    @State private var gridSettings = GridSettings()
+
+    // MARK: - Body
+
     var body: some View {
         HStack(spacing: 0) {
-            
+
             // MARK: - Main canvas area
             VStack(spacing: 0) {
                 // MARK: - Ruler row
@@ -58,6 +65,7 @@ struct DrawingCanvasView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .frame(height: 20)
+
                 // ── Canvas + vertical ruler ──────────────────────────────────
                 HStack(spacing: 0) {
                     VRulerView(
@@ -68,15 +76,17 @@ struct DrawingCanvasView: View {
                     )
                     .frame(width: 20)
                     .frame(maxHeight: .infinity)
-                    
+
                     ZStack(alignment: .topLeading) {
                         DrawingView(
-                            model: model,
-                            shapes: shapes,
-                            canvasSize: $canvasSize,
-                            zoomLevel: $zoomLevel,
+                            model:           model,
+                            shapes:          shapes,
+                            canvasSize:      $canvasSize,
+                            zoomLevel:       $zoomLevel,
                             selectedShapeID: selectedShapeID,
-                            editMode: editMode,
+                            editMode:        editMode,
+                            // MARK: Grid (NEW) — pass settings into the view
+                            gridSettings:    gridSettings,
                             onMouseMoved: { location in
                                 currentCoordinates = location
                             },
@@ -98,7 +108,7 @@ struct DrawingCanvasView: View {
                     .background(Color(NSColor.windowBackgroundColor))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                
+
                 // MARK: - Bottom toolbar
                 HStack(spacing: 10) {
                     HStack(spacing: 8) {
@@ -106,7 +116,7 @@ struct DrawingCanvasView: View {
                             Label("Draw", systemImage: "pencil")
                         }
                         .toolbarButton(role: model.interactionMode == .draw ? .primary : .default)
-                        
+
                         Button(action: {
                             model.interactionMode = .select
                             selectedShapeID = nil
@@ -115,28 +125,35 @@ struct DrawingCanvasView: View {
                         }
                         .toolbarButton(role: model.interactionMode == .select ? .primary : .default)
                     }
-                    
+
                     Divider().frame(height: 24)
-                    
-                    Button("Clear Canvas") { clearCanvas() }
-                        .toolbarButton(role: .destructive)
-                    
-                    Button("Export PDF") { exportPDF() }
-                        .toolbarButton(role: .confirm)
-                    
-                    if selectedShapeID != nil {
-                        Button("Delete") { deleteSelectedShape() }
+
+                    Group {
+                        Button("Clear Canvas") { clearCanvas() }
                             .toolbarButton(role: .destructive)
+
+                        Button("Export PDF") { exportPDF() }
+                            .toolbarButton(role: .confirm)
+
+                        if selectedShapeID != nil {
+                            Button("Delete") { deleteSelectedShape() }
+                                .toolbarButton(role: .destructive)
+                        }
+
+                        Button("Print Pages") { showPrintSetup = true }
+                            .toolbarButton(role: .primary)
+
+                        Button("Canvas Setup") { showCanvasSetup = true }
+                            .toolbarButton(role: .default)
                     }
-                    
-                    Button("Print Pages") { showPrintSetup = true }
-                        .toolbarButton(role: .primary)
-                    
-                    Button("Canvas Setup") { showCanvasSetup = true }
-                        .toolbarButton(role: .default)
-                    
+
+                    Divider().frame(height: 24)
+
+                    // MARK: Grid controls (NEW)
+                    gridControls
+
                     Spacer()
-                    
+
                     if showCoordinates {
                         coordinateOverlay
                     }
@@ -146,9 +163,9 @@ struct DrawingCanvasView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .layoutPriority(1)
-            
+
             Divider()
-            
+
             sidebarArea
         }
         .frame(minWidth: 900, minHeight: 600)
@@ -182,19 +199,63 @@ struct DrawingCanvasView: View {
             onOpen: openDrawing,
             onOpenRecent: onOpenRecent
         )
-        
     }
+
+    // MARK: - Grid controls view (NEW)
+
+    /// Compact grid toggle + snap toggle + spacing stepper
+    /// placed inline in the bottom toolbar.
+    private var gridControls: some View {
+        HStack(spacing: 8) {
+            gridToggleButtons
+            gridSpacingControl
+        }
+    }
+
+    private var gridToggleButtons: some View {
+        HStack(spacing: 8) {
+            Button(action: { gridSettings.isVisible.toggle() }) {
+                Label("Grid", systemImage: "grid")
+            }
+            .toolbarButton(role: gridSettings.isVisible ? .primary : .default)
+            .help("Show / hide grid")
+
+            Button(action: { gridSettings.snapEnabled.toggle() }) {
+                Label("Snap", systemImage: "scope")
+            }
+            .toolbarButton(role: gridSettings.snapEnabled ? .primary : .default)
+            .help("Snap drawing points to the grid")
+        }
+    }
+
+    private var gridSpacingControl: some View {
+        HStack(spacing: 4) {
+            Text("\(Int(gridSettings.spacingMM)) mm")
+                .font(.system(size: 12, design: .monospaced))
+                .frame(minWidth: 40, alignment: .trailing)
+            Stepper(
+                "",
+                value: $gridSettings.spacingMM,
+                in: 1.0...100.0,
+                step: 1.0
+            )
+            .labelsHidden()
+            .help("Grid spacing in millimetres")
+        }
+        .help("Grid spacing")
+    }
+
     // MARK: - View Components
-    
+
     private var coordinateOverlay: some View {
         let xFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.x, inMillimeters: showInMillimeters)
         let yFormatted = CoordinateConverter.formatCoordinate(currentCoordinates.y, inMillimeters: showInMillimeters)
         let unit = CoordinateConverter.unitLabel(inMillimeters: showInMillimeters)
-        
+
         return VStack(alignment: .trailing, spacing: 2) {
             Text("X: \(xFormatted) \(unit), Y: \(yFormatted) \(unit)")
                 .font(.system(size: 13, design: .monospaced))
-            
+
             if let selectedID = selectedShapeID,
                let shape = shapes.first(where: { $0.id == selectedID }) {
                 Text("Selected: \(shape.type.displayName)")
@@ -206,7 +267,7 @@ struct DrawingCanvasView: View {
         .background(Color.gray.opacity(0.1))
         .cornerRadius(4)
     }
-    
+
     @ViewBuilder
     private var sidebarArea: some View {
         if model.interactionMode == .draw {
@@ -214,6 +275,8 @@ struct DrawingCanvasView: View {
                 shapes: $shapes,
                 showInMillimeters: $showInMillimeters,
                 model: model,
+                // MARK: Grid (NEW) — pass binding so toolbar can edit spacing
+                gridSettings: $gridSettings,
                 onCommitBezier: commitBezierShape
             )
             .fixedSize(horizontal: true, vertical: false)
@@ -228,16 +291,17 @@ struct DrawingCanvasView: View {
             .fixedSize(horizontal: true, vertical: false)
         }
     }
-    
+
     // MARK: - Mouse Event Handlers
-    
+
     private func handleMouseDown(at location: CGPoint) {
+        // MARK: Grid (NEW) — snap the incoming location
+        let location = gridSettings.snap(location)
         currentCoordinates = location
         if model.interactionMode == .select {
             if editMode == .resize,
                let shapeID = selectedShapeID,
                let shape = shapes.first(where: { $0.id == shapeID }) {
-                // Bezier: hit-test control/curve points first
                 if shape.type == .cubicBezier {
                     if let hit = HitTesting.hitTestBezierPoints(mousePosition: location, bezierSegments: shape.bezierSegments) {
                         activeBezierHit = hit
@@ -262,8 +326,10 @@ struct DrawingCanvasView: View {
             }
         }
     }
-    
+
     private func handleMouseDragged(at location: CGPoint) {
+        // MARK: Grid (NEW) — snap the incoming location
+        let location = gridSettings.snap(location)
         currentCoordinates = location
         if model.interactionMode == .select {
             if let hit = activeBezierHit {
@@ -276,25 +342,26 @@ struct DrawingCanvasView: View {
             }
         }
     }
-    
+
     private func handleMouseUp(at location: CGPoint) {
+        // MARK: Grid (NEW) — snap the final drop position
+        let _ = gridSettings.snap(location)
         dragStartPoint = nil
         originalShape = nil
         activeResizeHandle = nil
         activeBezierHit = nil
         mouseDownLocation = nil
     }
-    
+
     private func handleBezierPointDrag(to location: CGPoint, hit: HitResult) {
         guard let shapeID = selectedShapeID,
               let index = shapes.firstIndex(where: { $0.id == shapeID }),
               shapes[index].type == .cubicBezier else { return }
-        
+
         var segs = shapes[index].bezierSegments
         switch hit {
         case .curvePoint(let i):
             segs[i].curvePoint = location
-            // Keep the mirror segment's curvePoint1 in sync
             if segs.count > 1 && i == segs.count - 1 {
                 segs[segs.count - 2].curvePoint1 = location
             }
@@ -305,13 +372,13 @@ struct DrawingCanvasView: View {
         }
         shapes[index].bezierSegments = segs
     }
-    
+
     private func handleShapeMove(to location: CGPoint, from startPoint: CGPoint, original: Shape) {
         guard let shapeID = selectedShapeID,
               let index = shapes.firstIndex(where: { $0.id == shapeID }) else { return }
-        
+
         let delta = CGPoint(x: location.x - startPoint.x, y: location.y - startPoint.y)
-        
+
         var updated = original
         if updated.type == .cubicBezier {
             updated.bezierSegments = original.bezierSegments.map { $0.translated(by: delta) }
@@ -320,13 +387,13 @@ struct DrawingCanvasView: View {
         }
         shapes[index] = updated
     }
-    
+
     private func handleShapeResize(to location: CGPoint) {
         guard let shapeID = selectedShapeID,
               let index = shapes.firstIndex(where: { $0.id == shapeID }),
               let handle = activeResizeHandle,
               let original = originalShape else { return }
-        
+
         shapes[index] = ShapeResizer.resize(
             shape: shapes[index],
             handle: handle,
@@ -334,32 +401,33 @@ struct DrawingCanvasView: View {
             originalShape: original
         )
     }
-    
+
     // MARK: - Actions
-    
+
     private func deleteSelectedShape() {
         guard let shapeID = selectedShapeID else { return }
         shapes.removeAll { $0.id == shapeID }
         selectedShapeID = nil
     }
-    
+
     private func clearCanvas() {
         shapes.removeAll()
         selectedShapeID = nil
         currentCoordinates = .zero
     }
-    
+
     private func exportPDF() {
         PDFExporter(pageSize: canvasSize)?.savePDFWithDialog(shapes: shapes)
     }
-    
+
     private func exportMultiPage(layout: PageLayout) {
         PDFExporter(pageSize: layout.paperSize)?.saveMultiPagePDFWithDialog(shapes: shapes, layout: layout)
     }
+
     private func saveDrawing() {
         DrawingSerializer.saveDrawingWithDialog(shapes: shapes, canvasSize: canvasSize)
     }
-    
+
     private func openDrawing() {
         DrawingSerializer.openDrawingWithDialog { result, url in
             switch result {
@@ -369,7 +437,6 @@ struct DrawingCanvasView: View {
                 currentShape = nil
                 currentCoordinates = CGPoint.zero
                 selectedShapeID = nil
-                // Register with "Open Recent" — add this line:
                 if let url {
                     NSDocumentController.shared.noteNewRecentDocumentURL(url)
                     recentManager.refresh()
@@ -379,6 +446,7 @@ struct DrawingCanvasView: View {
             }
         }
     }
+
     private func onOpenRecent(_ url: URL) {
         DrawingSerializer.loadDrawing(from: url) { result in
             switch result {
@@ -395,7 +463,7 @@ struct DrawingCanvasView: View {
             }
         }
     }
-    
+
     private func commitBezierShape() {
         guard !model.bezierSegments.isEmpty else { return }
         let shape = Shape(type: .cubicBezier, bezierSegments: model.bezierSegments)
@@ -410,7 +478,7 @@ struct DrawingCanvasView: View {
 extension BezierSegment {
     func translated(by delta: CGPoint) -> BezierSegment {
         var newSegment = self
-        newSegment.curvePoint = CGPoint(x: curvePoint.x + delta.x, y: curvePoint.y + delta.y)
+        newSegment.curvePoint   = CGPoint(x: curvePoint.x   + delta.x, y: curvePoint.y   + delta.y)
         newSegment.controlPoint = CGPoint(x: controlPoint.x + delta.x, y: controlPoint.y + delta.y)
         newSegment.controlPoint1 = CGPoint(x: controlPoint1.x + delta.x, y: controlPoint1.y + delta.y)
         return newSegment

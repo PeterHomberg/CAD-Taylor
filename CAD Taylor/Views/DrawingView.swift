@@ -1,6 +1,8 @@
 // ============================================
 // File: DrawingView.swift
 // Core Graphics rendering with Integrated NSScrollView
+// GRID UPDATE: Passes GridSettings into DrawingNSView so it can
+//              draw the grid overlay and apply snap inside mouse events.
 // ============================================
 
 import SwiftUI
@@ -19,13 +21,16 @@ struct DrawingView: NSViewRepresentable {
     @Binding var zoomLevel: CGFloat
     let selectedShapeID: UUID?
     let editMode: EditMode
-    
+
+    // MARK: Grid (NEW)
+    let gridSettings: GridSettings
+
     var onMouseMoved:     ((CGPoint) -> Void)?
     var onMouseDown:      ((CGPoint) -> Void)?
     var onMouseDragged:   ((CGPoint) -> Void)?
     var onMouseUp:        ((CGPoint) -> Void)?
     var onShapeCommitted: ((Shape)   -> Void)?
-    
+
     class ViewNSDelegate: NSObject, DrawingViewDelegate {
         var model: DrawingModel
         init(model: DrawingModel) { self.model = model }
@@ -33,74 +38,67 @@ struct DrawingView: NSViewRepresentable {
             model.coordinate = newCoordinate
         }
     }
-    
+
     func makeCoordinator() -> ViewNSDelegate {
         ViewNSDelegate(model: model)
     }
-    
+
     func makeNSView(context: Context) -> NSScrollView {
-        // 1. Create the ScrollView container
         let scrollView = NSScrollView()
-        scrollView.hasVerticalScroller = true
+        scrollView.hasVerticalScroller   = true
         scrollView.hasHorizontalScroller = true
-        scrollView.autohidesScrollers = true
-        scrollView.drawsBackground = true
-        scrollView.backgroundColor = NSColor.windowBackgroundColor
-        scrollView.allowsMagnification = true // Enable native zooming if desired
-        
-        // 2. Create the Drawing Canvas (the documentView)
+        scrollView.autohidesScrollers    = true
+        scrollView.drawsBackground       = true
+        scrollView.backgroundColor       = NSColor.windowBackgroundColor
+        scrollView.allowsMagnification   = true
+
         let drawingView = DrawingNSView(bezierSegments: model.bezierSegments)
         drawingView.frame = NSRect(origin: .zero, size: canvasSize)
-        
-        // Connect the canvas to the scroll view
+
         scrollView.documentView = drawingView
-        
-        // Initial setup of callbacks
         configureDrawingView(drawingView, context: context)
-        
         return scrollView
     }
-    
+
     func updateNSView(_ nsView: NSScrollView, context: Context) {
         guard let drawingView = nsView.documentView as? DrawingNSView else { return }
-        
-        // Sync Canvas Size
+
         if drawingView.frame.size != canvasSize {
             drawingView.frame = NSRect(origin: .zero, size: canvasSize)
         }
-        
-        // Sync zoom level
         if nsView.magnification != zoomLevel {
             nsView.magnification = zoomLevel
         }
-        
-        // Sync Model State to Canvas
-        drawingView.shapes            = shapes
-        drawingView.onMouseMoved      = onMouseMoved
-        drawingView.onMouseDown       = onMouseDown
-        drawingView.onMouseDragged    = onMouseDragged
-        drawingView.onMouseUp         = onMouseUp
-        
+
+        drawingView.shapes       = shapes
+        drawingView.onMouseMoved = onMouseMoved
+        drawingView.onMouseDown  = onMouseDown
+        drawingView.onMouseDragged = onMouseDragged
+        drawingView.onMouseUp    = onMouseUp
+
         drawingView.isUpdatingFromModel = true
         if drawingView.bezierSegments.count != model.bezierSegments.count {
             drawingView.bezierSegments = model.bezierSegments
         }
         drawingView.isUpdatingFromModel = false
-        
+
         drawingView.penMode             = model.penMode
         drawingView.selectedDrawingMode = model.selectedDrawingMode
         drawingView.interactionMode     = model.interactionMode
         drawingView.selectedShapeID     = selectedShapeID
         drawingView.selectedEditMode    = editMode
-        
+
+        // MARK: Grid (NEW) — forward current settings every update cycle
+        drawingView.gridSettings = gridSettings
+
         if model.clearTemporaryShape {
-            drawingView.temporaryShape     = nil
-            model.clearTemporaryShape = false
+            drawingView.temporaryShape    = nil
+            model.clearTemporaryShape     = false
         }
-        
+
         drawingView.needsDisplay = true
     }
-    
+
     private func configureDrawingView(_ view: DrawingNSView, context: Context) {
         view.onMouseMoved        = onMouseMoved
         view.onMouseDown         = onMouseDown
@@ -109,6 +107,7 @@ struct DrawingView: NSViewRepresentable {
         view.onShapeCommitted    = onShapeCommitted
         view.selectedDrawingMode = model.selectedDrawingMode
         view.interactionMode     = model.interactionMode
+        view.gridSettings        = gridSettings          // MARK: Grid (NEW)
         view.onSegmentsChanged   = { [weak model] segments in
             model?.bezierSegments = segments
         }
@@ -122,87 +121,85 @@ class DrawingNSView: NSView {
     weak var delegate: DrawingViewDelegate?
     var selectedDrawingMode: DrawingMode?
     var interactionMode: InteractionMode = .draw
-    
-    var shapes: [Shape] = []        { didSet { needsDisplay = true } }
+
+    var shapes: [Shape] = []            { didSet { needsDisplay = true } }
     var temporaryShape: TemporaryShape? { didSet { needsDisplay = true } }
-    var selectedShapeID: UUID?      { didSet { needsDisplay = true } }
+    var selectedShapeID: UUID?          { didSet { needsDisplay = true } }
     var selectedEditMode: EditMode = .move { didSet { needsDisplay = true } }
-    
+
+    // MARK: Grid (NEW)
+    var gridSettings: GridSettings = GridSettings() { didSet { needsDisplay = true } }
+
     var arcClickCount: Int = 0
-    
-    override var isFlipped: Bool         { true }
+
+    override var isFlipped: Bool          { true }
     override var acceptsFirstResponder: Bool { true }
-    
+
     var onMouseMoved:     ((CGPoint) -> Void)?
     var onMouseDown:      ((CGPoint) -> Void)?
     var onMouseDragged:   ((CGPoint) -> Void)?
     var onMouseUp:        ((CGPoint) -> Void)?
     var onShapeCommitted: ((Shape)   -> Void)?
-    
+
     private var dragStartedInside = false
-    
+
     var bezierSegments: [BezierSegment] = [] {
         didSet {
-            if !isUpdatingFromModel {
-                onSegmentsChanged?(bezierSegments)
-            }
+            if !isUpdatingFromModel { onSegmentsChanged?(bezierSegments) }
         }
     }
     var onSegmentsChanged: (([BezierSegment]) -> Void)?
     var lastMousePosition: CGPoint = .zero
-    var showCrosshair: Bool = false          // true while mouse is inside the canvas
+    var showCrosshair: Bool = false
     var isUpdatingFromModel = false
     var penMode: Bool = true
     var hitPoint: HitResult? = nil
-    
+
     init(bezierSegments: [BezierSegment]) {
         self.bezierSegments = bezierSegments
         super.init(frame: .zero)
     }
-    
+
     required init?(coder: NSCoder) {
         self.bezierSegments = []
         super.init(coder: coder)
     }
-    
+
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         updateTrackingAreas()
     }
-    
+
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         for area in trackingAreas { removeTrackingArea(area) }
         let area = NSTrackingArea(
             rect: bounds,
-            options: [.mouseMoved, .mouseEnteredAndExited,   // <-- add mouseEnteredAndExited
+            options: [.mouseMoved, .mouseEnteredAndExited,
                       .activeInKeyWindow, .inVisibleRect],
             owner: self,
             userInfo: nil
         )
         addTrackingArea(area)
     }
-    
-    // Since this view is now the documentView of an NSScrollView,
-    // we no longer need complex hitTest overrides.
-    // The ScrollView will handle its own scrollers and only pass
-    // events to us if they hit the canvas.
-    
+
     // MARK: - Mouse Events
+
     override func mouseEntered(with event: NSEvent) {
         showCrosshair = true
         needsDisplay = true
     }
+
     override func mouseExited(with event: NSEvent) {
         showCrosshair = false
         needsDisplay = true
     }
-    // MARK: - Mouse moved
+
     override func mouseMoved(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
-        lastMousePosition = location        // NEW — keep in sync for crosshair
+        lastMousePosition = location
         delegate?.drawingView(self, newCoordinate: location)
-        
+
         if interactionMode == .draw {
             if temporaryShape?.points.count == 3 && temporaryShape?.mode == .circleArc {
                 temporaryShape?.points[2] = location
@@ -213,17 +210,16 @@ class DrawingNSView: NSView {
             }
         }
         onMouseMoved?(location)
-        needsDisplay = true                 // NEW — redraw crosshair on every move
+        needsDisplay = true
     }
-    
-    //MARK: - Mouse down
+
     override func mouseDown(with event: NSEvent) {
-        let location = convert(event.locationInWindow, from: nil)
-        
-        // Because we are in a ScrollView, mouseDown is only called if
-        // the click was actually on the canvas.
+        let raw = convert(event.locationInWindow, from: nil)
+        // MARK: Grid (NEW) — snap before forwarding to draw logic
+        let location = gridSettings.snap(raw)
+
         dragStartedInside = true
-        
+
         if interactionMode == .draw {
             switch selectedDrawingMode {
             case .straightLine:
@@ -243,18 +239,21 @@ class DrawingNSView: NSView {
                 break
             }
         }
-        
+
         if interactionMode == .select {
             onMouseDown?(location)
         }
     }
-    
-    //MARK: - Mouse dragged
+
     override func mouseDragged(with event: NSEvent) {
         guard dragStartedInside else { return }
-        let location = convert(event.locationInWindow, from: nil)
+        let raw = convert(event.locationInWindow, from: nil)
+        // MARK: Grid (NEW) — snap drag position
+        let location = gridSettings.snap(raw)
+
         lastMousePosition = location
         onMouseMoved?(location)
+
         if interactionMode == .draw {
             switch selectedDrawingMode {
             case .straightLine, .square:
@@ -262,55 +261,62 @@ class DrawingNSView: NSView {
                     temporaryShape?.points = [temp.points[0], location]
                 }
             case .some(.freehand):
-                temporaryShape?.points.append(location)
+                // Freehand intentionally not snapped — it would ruin the stroke
+                temporaryShape?.points.append(raw)
             case .some(.cubicBezier):
                 handleBezierMouseDragged(at: location)
             default:
                 break
             }
         }
-        
+
         if interactionMode == .select {
             onMouseDragged?(location)
         }
     }
-    
+
     override func mouseUp(with event: NSEvent) {
         defer { dragStartedInside = false }
         guard dragStartedInside else { return }
-        let location = convert(event.locationInWindow, from: nil)
-        
+        let raw = convert(event.locationInWindow, from: nil)
+        // MARK: Grid (NEW) — snap the commit point
+        let location = gridSettings.snap(raw)
+
         if interactionMode == .draw {
-            commitTemporaryShape()
+            commitTemporaryShape(snappedLocation: location)
         }
-        
+
         if interactionMode == .select {
             onMouseUp?(location)
         }
     }
-    
+
     // MARK: - Drawing Logic
-    
+
     override func draw(_ dirtyRect: NSRect) {
-        // Fill background with white to represent the "paper"
         NSColor.white.setFill()
         dirtyRect.fill()
-        
+
         guard let ctx = NSGraphicsContext.current?.cgContext else { return }
-        
+
+        // MARK: Grid (NEW) — draw grid first so it sits behind all shapes
+        if gridSettings.isVisible {
+            drawGrid(ctx: ctx)
+        }
+
         for shape in shapes {
             drawShape(shape, in: ctx)
         }
-        
+
         if let temp = temporaryShape {
             drawTemporaryShape(ctx: ctx, temp: temp)
         }
-        
+
         if let selectedID = selectedShapeID,
            let shape = shapes.first(where: { $0.id == selectedID }) {
             drawSelectionOverlay(shape: shape, in: ctx)
         }
-        
+
         if penMode {
             for segment in bezierSegments {
                 segment.draw(ctx: ctx)
@@ -319,32 +325,64 @@ class DrawingNSView: NSView {
         if bezierSegments.count > 1 {
             drawBezierCurve(segments: bezierSegments, ctx: ctx)
         }
-        // Crosshair — drawn last so it appears on top of everything
+
         if showCrosshair {
             drawCrosshair(ctx: ctx, at: lastMousePosition)
         }
     }
-    
-    // MARK: - Internal Handlers (Refactored for clarity)
+
+    // MARK: - Grid rendering (NEW)
+
+    /// Draws a dot-grid (or line-grid) using the current GridSettings.
+    /// Called from draw(_:) before any shapes are rendered.
+    private func drawGrid(ctx: CGContext) {
+        ctx.saveGState()
+
+        let spacing = gridSettings.spacingPts
+        guard spacing > 1 else {
+            ctx.restoreGState()
+            return
+        }
+
+        let w = bounds.width
+        let h = bounds.height
+
+        // Draw subtle dots at every grid intersection.
+        // Dots are less visually distracting than full grid lines
+        // but still give clear snap targets.
+        ctx.setFillColor(NSColor.systemGray.withAlphaComponent(0.35).cgColor)
+        let dotRadius: CGFloat = 0.8
+
+        var x: CGFloat = 0
+        while x <= w {
+            var y: CGFloat = 0
+            while y <= h {
+                let dot = CGRect(x: x - dotRadius, y: y - dotRadius,
+                                 width: dotRadius * 2, height: dotRadius * 2)
+                ctx.fillEllipse(in: dot)
+                y += spacing
+            }
+            x += spacing
+        }
+
+        ctx.restoreGState()
+    }
+
+    // MARK: - Internal Handlers
+
     private func drawCrosshair(ctx: CGContext, at point: CGPoint) {
         ctx.saveGState()
-        
-        // Thin blue hairlines spanning the full canvas
         ctx.setStrokeColor(NSColor.systemBlue.withAlphaComponent(0.4).cgColor)
         ctx.setLineWidth(0.5)
         ctx.setLineDash(phase: 0, lengths: [4, 3])
-        
-        // Horizontal line
-        ctx.move(to: CGPoint(x: 0,           y: point.y))
+        ctx.move(to: CGPoint(x: 0,            y: point.y))
         ctx.addLine(to: CGPoint(x: bounds.width, y: point.y))
-        
-        // Vertical line
         ctx.move(to: CGPoint(x: point.x, y: 0))
         ctx.addLine(to: CGPoint(x: point.x, y: bounds.height))
-        
         ctx.strokePath()
         ctx.restoreGState()
     }
+
     private func handleArcClick(at location: CGPoint) {
         switch arcClickCount {
         case 1:
@@ -358,11 +396,11 @@ class DrawingNSView: NSView {
                 onShapeCommitted?(Shape(type: .circleArc, points: temp.points))
             }
             temporaryShape = nil
-            arcClickCount = 0
+            arcClickCount  = 0
         default: break
         }
     }
-    
+
     private func handleBezierMouseDown(at location: CGPoint) {
         guard penMode else { return }
         lastMousePosition = location
@@ -377,7 +415,7 @@ class DrawingNSView: NSView {
         }
         needsDisplay = true
     }
-    
+
     private func handleBezierMouseDragged(at location: CGPoint) {
         guard penMode else { return }
         lastMousePosition = location
@@ -387,31 +425,71 @@ class DrawingNSView: NSView {
         } else if cnt > 0 {
             bezierSegments[cnt - 1].controlPoint = lastMousePosition
             if cnt > 1 {
-                let mirror = createMirrorControlPoint(curvePoint: bezierSegments[cnt - 1].curvePoint, controlPoint: bezierSegments[cnt - 1].controlPoint)
+                let mirror = createMirrorControlPoint(
+                    curvePoint: bezierSegments[cnt - 1].curvePoint,
+                    controlPoint: bezierSegments[cnt - 1].controlPoint
+                )
                 bezierSegments[cnt - 2].controlPoint1 = mirror
             }
         }
         temporaryShape?.bezierSegments = bezierSegments
         needsDisplay = true
     }
-    
+
     private func updateBezierHitPoint(_ hit: HitResult, to location: CGPoint) {
         switch hit {
         case .curvePoint(let index):
+            let delta = CGPoint(
+                x: location.x - bezierSegments[index].curvePoint.x,
+                y: location.y - bezierSegments[index].curvePoint.y
+            )
+            // Move the curve point itself
             bezierSegments[index].curvePoint = location
-            if bezierSegments.count > 1 && index == bezierSegments.count - 1 {
-                bezierSegments[bezierSegments.count - 2].curvePoint1 = location
+/*
+            // curvePoint1 is the anchor on the same segment used by draw() to
+            // paint the dashed line to controlPoint1 — it must follow the drag
+            if bezierSegments[index].curvePoint1 != .zero {
+                bezierSegments[index].curvePoint1 = CGPoint(
+                    x: bezierSegments[index].curvePoint1.x + delta.x,
+                    y: bezierSegments[index].curvePoint1.y + delta.y
+                )
             }
-        case .controlPoint(let index): bezierSegments[index].controlPoint = location
+ */
+
+            // The previous segment stores this curvePoint as its own curvePoint1
+            // (the right-hand anchor for its handle line) — keep it in sync
+            if index > 0 {
+                bezierSegments[index - 1].curvePoint1 = location
+            }
+
+            // Shift the control points so handles keep their relative offset
+            if bezierSegments[index].controlPoint != .zero {
+                bezierSegments[index].controlPoint = CGPoint(
+                    x: bezierSegments[index].controlPoint.x + delta.x,
+                    y: bezierSegments[index].controlPoint.y + delta.y
+                )
+            }
+            if bezierSegments[index].controlPoint1 != .zero {
+                bezierSegments[index].controlPoint1 = CGPoint(
+                    x: bezierSegments[index].controlPoint1.x + delta.x,
+                    y: bezierSegments[index].controlPoint1.y + delta.y
+                )
+            }
+
+        case .controlPoint(let index):  bezierSegments[index].controlPoint  = location
         case .controlPoint1(let index): bezierSegments[index].controlPoint1 = location
         }
     }
-    
-    private func commitTemporaryShape() {
+
+    /// mouseUp passes the already-snapped location here so the committed shape
+    /// has its final point on a grid intersection.
+    private func commitTemporaryShape(snappedLocation: CGPoint) {
         guard let temp = temporaryShape else { return }
         switch temp.mode {
         case .straightLine where temp.points.count == 2:
-            onShapeCommitted?(Shape(type: .straightLine, points: temp.points))
+            // Replace the end point with the snapped position
+            let pts = [temp.points[0], snappedLocation]
+            onShapeCommitted?(Shape(type: .straightLine, points: pts))
         case .freehand where !temp.points.isEmpty:
             onShapeCommitted?(Shape(type: .freehand, points: temp.points))
         case .square where temp.rect != nil:
@@ -423,63 +501,42 @@ class DrawingNSView: NSView {
         }
         temporaryShape = nil
     }
-    
-    // (Remaining helper methods: drawShape, drawTemporaryShape, color, drawBezierCurve etc.
-    // kept the same as your previous logic...)
-    
+
     private func drawSelectionOverlay(shape: Shape, in ctx: CGContext) {
         ctx.saveGState()
-        
         let box = shape.boundingBox
-        
-        // Dashed bounding box
         ctx.setStrokeColor(NSColor.systemBlue.cgColor)
         ctx.setLineWidth(2)
         ctx.setLineDash(phase: 0, lengths: [5, 3])
         ctx.stroke(box)
-        
-        ctx.setLineDash(phase: 0, lengths: []) // reset dash for handles
-        
-        // Resize / edit handles
+        ctx.setLineDash(phase: 0, lengths: [])
+
         switch shape.type {
         case .rectangle:
             let handlePoints: [CGPoint] = [
-                CGPoint(x: box.minX, y: box.minY),
-                CGPoint(x: box.maxX, y: box.minY),
-                CGPoint(x: box.maxX, y: box.maxY),
-                CGPoint(x: box.minX, y: box.maxY),
-                CGPoint(x: box.midX, y: box.minY),
-                CGPoint(x: box.maxX, y: box.midY),
-                CGPoint(x: box.midX, y: box.maxY),
-                CGPoint(x: box.minX, y: box.midY),
+                CGPoint(x: box.minX, y: box.minY), CGPoint(x: box.maxX, y: box.minY),
+                CGPoint(x: box.maxX, y: box.maxY), CGPoint(x: box.minX, y: box.maxY),
+                CGPoint(x: box.midX, y: box.minY), CGPoint(x: box.maxX, y: box.midY),
+                CGPoint(x: box.midX, y: box.maxY), CGPoint(x: box.minX, y: box.midY),
             ]
             drawHandles(at: handlePoints, color: NSColor.systemBlue.cgColor, size: 10, in: ctx)
-            
         case .straightLine:
             if shape.points.count >= 2 {
                 drawHandles(at: [shape.points.first!, shape.points.last!],
                             color: NSColor.systemBlue.cgColor, size: 10, in: ctx)
             }
-            
         case .circleArc:
             drawHandles(at: shape.points, color: NSColor.orange.cgColor, size: 8, in: ctx)
-            
         case .cubicBezier:
             if selectedEditMode == .resize {
-                // Draw control point handles and dashed connection lines
-                // using the same BezierSegment.draw(ctx:) used in draw mode
-                for segment in shape.bezierSegments {
-                    segment.draw(ctx: ctx)
-                }
+                for segment in shape.bezierSegments { segment.draw(ctx: ctx) }
             }
-            
         default:
             break
         }
-        
         ctx.restoreGState()
     }
-    
+
     private func drawHandles(at points: [CGPoint], color: CGColor, size: CGFloat, in ctx: CGContext) {
         let r = size / 2
         for point in points {
@@ -491,7 +548,7 @@ class DrawingNSView: NSView {
             ctx.strokeEllipse(in: rect)
         }
     }
-    
+
     private func drawTemporaryShape(ctx: CGContext, temp: TemporaryShape) {
         ctx.saveGState()
         ctx.setStrokeColor(NSColor.systemBlue.cgColor)
@@ -499,7 +556,7 @@ class DrawingNSView: NSView {
         ctx.setLineDash(phase: 0, lengths: [6, 3])
         ctx.setLineCap(.round)
         ctx.setLineJoin(.round)
-        
+
         switch temp.mode {
         case .freehand, .straightLine:
             guard temp.points.count > 1 else { break }
@@ -517,7 +574,8 @@ class DrawingNSView: NSView {
             }
             if temp.points.count == 3 {
                 let (center, radius, startAngle, endAngle) = Shape.arcParameters(from: temp.points)
-                ctx.addArc(center: center, radius: radius, startAngle: endAngle, endAngle: startAngle, clockwise: false)
+                ctx.addArc(center: center, radius: radius,
+                           startAngle: endAngle, endAngle: startAngle, clockwise: false)
                 ctx.strokePath()
             }
         case .square:
@@ -530,14 +588,14 @@ class DrawingNSView: NSView {
         }
         ctx.restoreGState()
     }
-    
+
     private func drawShape(_ shape: Shape, in ctx: CGContext) {
         ctx.saveGState()
         ctx.setStrokeColor(color(from: shape.color))
         ctx.setLineWidth(shape.width)
         ctx.setLineCap(.round)
         ctx.setLineJoin(.round)
-        
+
         switch shape.type {
         case .freehand:
             guard shape.points.count > 1 else { break }
@@ -558,7 +616,8 @@ class DrawingNSView: NSView {
         case .circleArc:
             guard shape.points.count == 3 else { break }
             let (center, radius, startAngle, endAngle) = Shape.arcParameters(from: shape.points)
-            ctx.addArc(center: center, radius: radius, startAngle: endAngle, endAngle: startAngle, clockwise: false)
+            ctx.addArc(center: center, radius: radius,
+                       startAngle: endAngle, endAngle: startAngle, clockwise: false)
             ctx.strokePath()
         case .cubicBezier:
             guard shape.bezierSegments.count > 1 else { break }
@@ -567,7 +626,7 @@ class DrawingNSView: NSView {
         }
         ctx.restoreGState()
     }
-    
+
     private func color(from name: String) -> CGColor {
         switch name.lowercased() {
         case "red":   return NSColor.systemRed.cgColor
@@ -578,18 +637,21 @@ class DrawingNSView: NSView {
         default:      return NSColor.black.cgColor
         }
     }
-    
+
     private func createMirrorControlPoint(curvePoint: CGPoint, controlPoint: CGPoint) -> CGPoint {
-        let delta = CGSize(width: controlPoint.x - curvePoint.x, height: controlPoint.y - curvePoint.y)
+        let delta = CGSize(width: controlPoint.x - curvePoint.x,
+                           height: controlPoint.y - curvePoint.y)
         return CGPoint(x: curvePoint.x - delta.width, y: curvePoint.y - delta.height)
     }
-    
+
     private func drawBezierCurve(segments: [BezierSegment], ctx: CGContext) {
         ctx.move(to: segments[0].curvePoint)
         for i in 1..<segments.count {
             let end = segments[i]; let start = segments[i - 1]
             if end.controlPoint != .zero {
-                ctx.addCurve(to: end.curvePoint, control1: start.controlPoint, control2: start.controlPoint1)
+                ctx.addCurve(to: end.curvePoint,
+                             control1: start.controlPoint,
+                             control2: start.controlPoint1)
             }
         }
         ctx.setStrokeColor(CGColor(red: 1, green: 0, blue: 0, alpha: 1))

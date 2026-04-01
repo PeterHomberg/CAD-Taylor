@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		FB3572EE2F7A431B00CA4F80 /* RulerViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB3572ED2F7A431B00CA4F80 /* RulerViews.swift */; };
+		FB3572F22F7CB57E00CA4F80 /* GridSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB3572F12F7CB57E00CA4F80 /* GridSettings.swift */; };
 		FB5B17342EB460B800128AD0 /* drawing_document.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB5B17332EB460B800128AD0 /* drawing_document.swift */; };
 		FB5B17362EB461EE00128AD0 /* drawing_serializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB5B17352EB461EE00128AD0 /* drawing_serializer.swift */; };
 		FB5B17382EB482AE00128AD0 /* coordinate_converter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB5B17372EB482AE00128AD0 /* coordinate_converter.swift */; };
@@ -47,6 +48,7 @@
 
 /* Begin PBXFileReference section */
 		FB3572ED2F7A431B00CA4F80 /* RulerViews.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RulerViews.swift; sourceTree = "<group>"; };
+		FB3572F12F7CB57E00CA4F80 /* GridSettings.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GridSettings.swift; sourceTree = "<group>"; };
 		FB5B17332EB460B800128AD0 /* drawing_document.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = drawing_document.swift; sourceTree = "<group>"; };
 		FB5B17352EB461EE00128AD0 /* drawing_serializer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = drawing_serializer.swift; sourceTree = "<group>"; };
 		FB5B17372EB482AE00128AD0 /* coordinate_converter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = coordinate_converter.swift; sourceTree = "<group>"; };
@@ -187,6 +189,7 @@
 		FBF935692E939263003618E6 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				FB3572F12F7CB57E00CA4F80 /* GridSettings.swift */,
 				FBDF28C72F6665E400E61ACD /* Helpers.swift */,
 				FB5B17372EB482AE00128AD0 /* coordinate_converter.swift */,
 				FB5B17352EB461EE00128AD0 /* drawing_serializer.swift */,
@@ -289,6 +292,7 @@
 				FBBB353E2EBC3FB60067C79C /* DrawingToolbar.swift in Sources */,
 				FB6E2C2F2EDBE22B00E8EF11 /* InteractionMode.swift in Sources */,
 				FBF9356B2E939281003618E6 /* ViewModifiers.swift in Sources */,
+				FB3572F22F7CB57E00CA4F80 /* GridSettings.swift in Sources */,
 				FBF935682E939233003618E6 /* DrawingView.swift in Sources */,
 				FBF9355B2E939050003618E6 /* NotificationNames.swift in Sources */,
 				FBE90E3C2E2B7E2E00C0CCC3 /* CADTaylorApp.swift in Sources */,

@@ -2,6 +2,7 @@
 // File: DrawingToolbar.swift
 // Sidebar for selecting drawing tools
 // NOW WITH: Coordinate input table for rectangles
+//           GRID UPDATE: Grid settings section at the bottom
 // ============================================
 
 import SwiftUI
@@ -10,19 +11,21 @@ struct DrawingToolbar: View {
     @Binding var shapes: [Shape]
     @Binding var showInMillimeters: Bool
     @ObservedObject var model: DrawingModel
+    // MARK: Grid (NEW)
+    @Binding var gridSettings: GridSettings
     var onCommitBezier: () -> Void
-    
+
     // Computed: letztes gezeichnetes Rechteck für Koordinaten-Eingabe
     private var lastRectangle: Shape? {
         shapes.last(where: { $0.type == .rectangle })
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Drawing Tools")
                 .font(.headline)
                 .padding(.bottom, 10)
-            
+
             Group {
                 // Freehand Drawing
                 ToolButton(
@@ -32,9 +35,9 @@ struct DrawingToolbar: View {
                 ) {
                     model.selectedDrawingMode = .freehand
                 }
-                
+
                 Divider()
-                
+
                 // Straight Line
                 ToolButton(
                     title: "Straight Line",
@@ -43,15 +46,15 @@ struct DrawingToolbar: View {
                 ) {
                     model.selectedDrawingMode = .straightLine
                 }
-                
+
                 Text("Click start point, then end point")
                     .font(.caption)
                     .foregroundColor(.gray)
                     .padding(.leading, 8)
-                
+
                 Divider()
             }
-            
+
             Group {
                 // Circle Arc
                 ToolButton(
@@ -61,14 +64,14 @@ struct DrawingToolbar: View {
                 ) {
                     model.selectedDrawingMode = .circleArc
                 }
-                
+
                 Text("Click three points to define arc")
                     .font(.caption)
                     .foregroundColor(.gray)
                     .padding(.leading, 8)
-                
+
                 Divider()
-                
+
                 // Square
                 ToolButton(
                     title: "Square",
@@ -77,17 +80,18 @@ struct DrawingToolbar: View {
                 ) {
                     model.selectedDrawingMode = .square
                 }
-                
+
                 Text("Click top-left, then drag to bottom-right")
                     .font(.caption)
                     .foregroundColor(.gray)
                     .padding(.leading, 8)
             }
-            
+
             Divider()
                 .padding(.vertical, 8)
+
             VStack {
-                // Kubische Bézierkurve (NEU)
+                // Cubic Bézier
                 ToolButton(title: "Cubic Bézier", icon: "scribble.variable",
                            isSelected: model.selectedDrawingMode == .cubicBezier) {
                     model.selectedDrawingMode = .cubicBezier
@@ -108,32 +112,29 @@ struct DrawingToolbar: View {
                     Divider()
                         .frame(height: 20)
                     Button { model.clear() } label: {
-                        Label("", systemImage: "circle.dashed.inset.filled") // Edit
+                        Label("", systemImage: "circle.dashed.inset.filled")
                     }
                     .help("Edit")
                     .toolbarButton(role: .default)
-                    .frame(maxWidth: .infinity)         // ← each button takes equal share
-
+                    .frame(maxWidth: .infinity)
 
                     Button { model.clear() } label: {
-                        Label("", systemImage: "trash") //Clear
+                        Label("", systemImage: "trash")
                     }
                     .help("Clear the current Bezier curve")
                     .toolbarButton(role: .destructive)
-                    .frame(maxWidth: .infinity)         // ← each button takes equal share
+                    .frame(maxWidth: .infinity)
 
                     Button { onCommitBezier() } label: {
-                        Label("", systemImage: "checkmark") //Commit
+                        Label("", systemImage: "checkmark")
                     }
                     .help("Commit")
                     .toolbarButton(role: .confirm)
-                    .frame(maxWidth: .infinity)         // ← each button takes equal share
+                    .frame(maxWidth: .infinity)
                 }
-                
             }
 
-            
-            // Coordinate input for rectangle (NEW!)
+            // Coordinate input for rectangle
             if model.selectedDrawingMode == .square {
                 if let rectangle = lastRectangle {
                     CoordinateInputSection(
@@ -153,7 +154,12 @@ struct DrawingToolbar: View {
                         .cornerRadius(6)
                 }
             }
-            
+
+            Divider()
+
+            // MARK: Grid Settings Section (NEW)
+            gridSettingsSection
+
             Spacer()
         }
         .padding(.horizontal, 8)
@@ -162,7 +168,110 @@ struct DrawingToolbar: View {
         .clipped()
         .background(Color.gray.opacity(0.1))
     }
-    
+
+    // MARK: - Grid Settings Section (NEW)
+
+    private var gridSettingsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Grid")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+
+            // Show grid toggle
+            Toggle(isOn: $gridSettings.isVisible) {
+                Label("Show grid", systemImage: "grid")
+                    .font(.system(size: 13))
+            }
+            .toggleStyle(.checkbox)
+
+            // Snap toggle
+            Toggle(isOn: $gridSettings.snapEnabled) {
+                Label("Snap to grid", systemImage: "scope")
+                    .font(.system(size: 13))
+            }
+            .toggleStyle(.checkbox)
+
+            // Spacing stepper — only show when grid is active
+            if gridSettings.isVisible || gridSettings.snapEnabled {
+                HStack {
+                    Text("Spacing")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+
+                    // TextField for direct entry
+                    TextField("", value: $gridSettings.spacingMM,
+                              formatter: spacingFormatter)
+                        .textFieldStyle(PlainTextFieldStyle())
+                        .font(.system(size: 12, design: .monospaced))
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 48)
+                        .padding(.vertical, 3)
+                        .padding(.horizontal, 6)
+                        .background(Color.white.opacity(0.6))
+                        .cornerRadius(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        )
+
+                    Text("mm")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+
+                    Stepper("", value: $gridSettings.spacingMM, in: 1...100, step: 1)
+                        .labelsHidden()
+                }
+
+                // Quick-select presets
+                HStack(spacing: 6) {
+                    ForEach([1.0, 5.0, 10.0, 25.0], id: \.self) { preset in
+                        Button("\(Int(preset))") {
+                            gridSettings.spacingMM = preset
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .font(.system(size: 11))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(gridSettings.spacingMM == preset
+                                    ? Color.blue.opacity(0.2)
+                                    : Color.gray.opacity(0.15))
+                        .foregroundColor(gridSettings.spacingMM == preset
+                                         ? .blue : .primary)
+                        .cornerRadius(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(gridSettings.spacingMM == preset
+                                        ? Color.blue : Color.clear, lineWidth: 1)
+                        )
+                    }
+                    Spacer()
+                    Text("mm")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(10)
+        .background(Color.white.opacity(0.4))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.gray.opacity(0.25), lineWidth: 1)
+        )
+    }
+
+    /// NumberFormatter for the spacing text field (1–100 mm, 1 decimal place)
+    private var spacingFormatter: NumberFormatter {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.minimum = 1
+        f.maximum = 100
+        f.maximumFractionDigits = 1
+        return f
+    }
+
     private func updateShape(_ updatedShape: Shape) {
         if let index = shapes.firstIndex(where: { $0.id == updatedShape.id }) {
             shapes[index] = updatedShape
@@ -170,24 +279,25 @@ struct DrawingToolbar: View {
     }
 }
 
-// MARK: - Coordinate Input Section
+// MARK: - Coordinate Input Section (unchanged)
+
 struct CoordinateInputSection: View {
     let shape: Shape
     let showInMillimeters: Bool
     let onUpdate: (Shape) -> Void
-    
+
     @State private var editedPoints: [NamedPoint] = []
     @State private var isEditing = false
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Rectangle Coordinates")
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                
+
                 Spacer()
-                
+
                 Text(showInMillimeters ? "mm" : "px")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -196,31 +306,27 @@ struct CoordinateInputSection: View {
                     .background(Color.blue.opacity(0.1))
                     .cornerRadius(4)
             }
-            
+
             if let cornerPoints = shape.cornerPoints {
                 VStack(spacing: 8) {
-                    // Header
                     HStack(spacing: 8) {
                         Text("Corner")
                             .font(.caption)
                             .fontWeight(.semibold)
                             .frame(width: 70, alignment: .leading)
-                        
                         Text("X")
                             .font(.caption)
                             .fontWeight(.semibold)
                             .frame(width: 65, alignment: .center)
-                        
                         Text("Y")
                             .font(.caption)
                             .fontWeight(.semibold)
                             .frame(width: 65, alignment: .center)
                     }
                     .foregroundColor(.secondary)
-                    
+
                     Divider()
-                    
-                    // Coordinate rows
+
                     ForEach(Array(cornerPoints.enumerated()), id: \.element.id) { index, namedPoint in
                         CoordinateRow(
                             namedPoint: namedPoint,
@@ -240,8 +346,7 @@ struct CoordinateInputSection: View {
                         .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                 )
             }
-            
-            // Apply button
+
             Button(action: applyChanges) {
                 HStack {
                     Image(systemName: "checkmark.circle.fill")
@@ -257,9 +362,7 @@ struct CoordinateInputSection: View {
             .disabled(!isEditing)
         }
         .onAppear {
-            if let corners = shape.cornerPoints {
-                editedPoints = corners
-            }
+            if let corners = shape.cornerPoints { editedPoints = corners }
         }
         .onChange(of: shape.points) { _ in
             if let corners = shape.cornerPoints {
@@ -268,13 +371,13 @@ struct CoordinateInputSection: View {
             }
         }
     }
-    
+
     private func updatePoint(at index: Int, with point: CGPoint) {
         guard index < editedPoints.count else { return }
         editedPoints[index].point = point
         isEditing = true
     }
-    
+
     private func applyChanges() {
         var updatedShape = shape
         updatedShape.updateCornerPoints(editedPoints)
@@ -283,29 +386,26 @@ struct CoordinateInputSection: View {
     }
 }
 
-// MARK: - Coordinate Row
+// MARK: - Coordinate Row (unchanged)
+
 struct CoordinateRow: View {
     let namedPoint: NamedPoint
     let index: Int
     let showInMillimeters: Bool
     let onUpdate: (CGPoint) -> Void
-    
+
     @State private var xText: String = ""
     @State private var yText: String = ""
     @FocusState private var focusedField: Field?
-    
-    enum Field {
-        case x, y
-    }
-    
+
+    enum Field { case x, y }
+
     var body: some View {
         HStack(spacing: 8) {
-            // Corner name (shortened)
             Text(shortName(namedPoint.name))
                 .font(.caption)
                 .frame(width: 70, alignment: .leading)
-            
-            // X coordinate
+
             TextField("X", text: $xText)
                 .textFieldStyle(PlainTextFieldStyle())
                 .font(.system(size: 11, design: .monospaced))
@@ -316,11 +416,8 @@ struct CoordinateRow: View {
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(4)
                 .focused($focusedField, equals: .x)
-                .onChange(of: xText) { _ in
-                    updateCoordinate()
-                }
-            
-            // Y coordinate
+                .onChange(of: xText) { _ in updateCoordinate() }
+
             TextField("Y", text: $yText)
                 .textFieldStyle(PlainTextFieldStyle())
                 .font(.system(size: 11, design: .monospaced))
@@ -331,57 +428,35 @@ struct CoordinateRow: View {
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(4)
                 .focused($focusedField, equals: .y)
-                .onChange(of: yText) { _ in
-                    updateCoordinate()
-                }
+                .onChange(of: yText) { _ in updateCoordinate() }
         }
-        .onAppear {
-            updateTextFields()
-        }
-        .onChange(of: namedPoint.point) { _ in
-            updateTextFields()
-        }
-        .onChange(of: showInMillimeters) { _ in
-            updateTextFields()
-        }
+        .onAppear { updateTextFields() }
+        .onChange(of: namedPoint.point) { _ in updateTextFields() }
+        .onChange(of: showInMillimeters) { _ in updateTextFields() }
     }
-    
+
     private func shortName(_ name: String) -> String {
         switch name {
-        case "Top-Left": return "TL"
-        case "Top-Right": return "TR"
+        case "Top-Left":     return "TL"
+        case "Top-Right":    return "TR"
         case "Bottom-Right": return "BR"
-        case "Bottom-Left": return "BL"
-        default: return name
+        case "Bottom-Left":  return "BL"
+        default:             return name
         }
     }
-    
+
     private func updateTextFields() {
-        let x = showInMillimeters ? 
-            CoordinateConverter.pointsToMillimeters(namedPoint.point.x) : 
-            namedPoint.point.x
-        let y = showInMillimeters ? 
-            CoordinateConverter.pointsToMillimeters(namedPoint.point.y) : 
-            namedPoint.point.y
-        
+        let x = showInMillimeters ? CoordinateConverter.pointsToMillimeters(namedPoint.point.x) : namedPoint.point.x
+        let y = showInMillimeters ? CoordinateConverter.pointsToMillimeters(namedPoint.point.y) : namedPoint.point.y
         xText = String(format: showInMillimeters ? "%.1f" : "%.0f", x)
         yText = String(format: showInMillimeters ? "%.1f" : "%.0f", y)
     }
-    
+
     private func updateCoordinate() {
         guard let xValue = Double(xText),
               let yValue = Double(yText) else { return }
-        
-        let x = showInMillimeters ? 
-            CoordinateConverter.millimetersToPoints(CGFloat(xValue)) : 
-            CGFloat(xValue)
-        let y = showInMillimeters ? 
-            CoordinateConverter.millimetersToPoints(CGFloat(yValue)) : 
-            CGFloat(yValue)
-        
+        let x = showInMillimeters ? CoordinateConverter.millimetersToPoints(CGFloat(xValue)) : CGFloat(xValue)
+        let y = showInMillimeters ? CoordinateConverter.millimetersToPoints(CGFloat(yValue)) : CGFloat(yValue)
         onUpdate(CGPoint(x: x, y: y))
     }
 }
-
-// ToolButton wurde nach SharedComponents.swift verschoben
-// um Duplikation zu vermeiden
