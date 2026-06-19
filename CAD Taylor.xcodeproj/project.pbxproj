@@ -22,6 +22,7 @@
 		FB7C43E72EFBC012006ED97A /* UPDATE_SELECT_MODE.md in Resources */ = {isa = PBXBuildFile; fileRef = FB7C43E32EFBC012006ED97A /* UPDATE_SELECT_MODE.md */; };
 		FB7EC3062F78D6F9006FBB4E /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FB7EC3052F78D6F9006FBB4E /* Info.plist */; };
 		FB7EC30A2F78DE3F006FBB4E /* RecentDocumentsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB7EC3092F78DE3F006FBB4E /* RecentDocumentsManager.swift */; };
+		FB8050DB2FE512EB00406F18 /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB8050DA2FE512EB00406F18 /* Helpers.swift */; };
 		FB890A8B2F6A6F7100EE4B30 /* EditToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB890A8A2F6A6F7100EE4B30 /* EditToolbar.swift */; };
 		FB890A8E2F6AA05A00EE4B30 /* push-all.sh in Resources */ = {isa = PBXBuildFile; fileRef = FB890A8D2F6AA05A00EE4B30 /* push-all.sh */; };
 		FB9900012EF90516007D4364 /* ShapeResizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB9900002EF90516007D4364 /* ShapeResizer.swift */; };
@@ -29,7 +30,6 @@
 		FBBB353C2EBC3F720067C79C /* DrawingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBBB353B2EBC3F720067C79C /* DrawingMode.swift */; };
 		FBBB353E2EBC3FB60067C79C /* DrawingToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBBB353D2EBC3FB60067C79C /* DrawingToolbar.swift */; };
 		FBDF28C62F665DC100E61ACD /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBDF28C52F665DC100E61ACD /* Bezier.swift */; };
-		FBDF28C82F6665E400E61ACD /* Helpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBDF28C72F6665E400E61ACD /* Helpers.swift */; };
 		FBE4F7B22F6BEB1A004B3253 /* PrintSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE4F7B12F6BEB1A004B3253 /* PrintSetupView.swift */; };
 		FBE4F7B42F6BEBE5004B3253 /* PageLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE4F7B32F6BEBE5004B3253 /* PageLayout.swift */; };
 		FBE4F7B62F6BEF11004B3253 /* PageGridPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBE4F7B52F6BEF11004B3253 /* PageGridPreview.swift */; };
@@ -63,6 +63,7 @@
 		FB7C43E32EFBC012006ED97A /* UPDATE_SELECT_MODE.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = UPDATE_SELECT_MODE.md; sourceTree = "<group>"; };
 		FB7EC3052F78D6F9006FBB4E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		FB7EC3092F78DE3F006FBB4E /* RecentDocumentsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentDocumentsManager.swift; sourceTree = "<group>"; };
+		FB8050DA2FE512EB00406F18 /* Helpers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Helpers.swift; sourceTree = "<group>"; };
 		FB890A8A2F6A6F7100EE4B30 /* EditToolbar.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EditToolbar.swift; sourceTree = "<group>"; };
 		FB890A8D2F6AA05A00EE4B30 /* push-all.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = "push-all.sh"; sourceTree = "<group>"; };
 		FB9900002EF90516007D4364 /* ShapeResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShapeResizer.swift; sourceTree = "<group>"; };
@@ -70,7 +71,6 @@
 		FBBB353B2EBC3F720067C79C /* DrawingMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingMode.swift; sourceTree = "<group>"; };
 		FBBB353D2EBC3FB60067C79C /* DrawingToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingToolbar.swift; sourceTree = "<group>"; };
 		FBDF28C52F665DC100E61ACD /* Bezier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bezier.swift; sourceTree = "<group>"; };
-		FBDF28C72F6665E400E61ACD /* Helpers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Helpers.swift; path = ../../../../SwiftUI/LearnSwiftUI/CGraphicsTutorial/CGraphicsTutorial/Helpers.swift; sourceTree = "<group>"; };
 		FBE4F7B12F6BEB1A004B3253 /* PrintSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrintSetupView.swift; sourceTree = "<group>"; };
 		FBE4F7B32F6BEBE5004B3253 /* PageLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageLayout.swift; sourceTree = "<group>"; };
 		FBE4F7B52F6BEF11004B3253 /* PageGridPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageGridPreview.swift; sourceTree = "<group>"; };
@@ -189,8 +189,8 @@
 		FBF935692E939263003618E6 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				FB8050DA2FE512EB00406F18 /* Helpers.swift */,
 				FB3572F12F7CB57E00CA4F80 /* GridSettings.swift */,
-				FBDF28C72F6665E400E61ACD /* Helpers.swift */,
 				FB5B17372EB482AE00128AD0 /* coordinate_converter.swift */,
 				FB5B17352EB461EE00128AD0 /* drawing_serializer.swift */,
 				FBF9356A2E939281003618E6 /* ViewModifiers.swift */,
@@ -286,6 +286,7 @@
 				FBF935612E93913C003618E6 /* PDFExporter.swift in Sources */,
 				FBF935592E938FE0003618E6 /* MenuCommands.swift in Sources */,
 				FB7EC30A2F78DE3F006FBB4E /* RecentDocumentsManager.swift in Sources */,
+				FB8050DB2FE512EB00406F18 /* Helpers.swift in Sources */,
 				FBE4F7B22F6BEB1A004B3253 /* PrintSetupView.swift in Sources */,
 				FBE4F7B42F6BEBE5004B3253 /* PageLayout.swift in Sources */,
 				FB890A8B2F6A6F7100EE4B30 /* EditToolbar.swift in Sources */,
@@ -302,7 +303,6 @@
 				FB5B17382EB482AE00128AD0 /* coordinate_converter.swift in Sources */,
 				FBF935642E9391A1003618E6 /* DrawingCanvasView.swift in Sources */,
 				FBDF28C62F665DC100E61ACD /* Bezier.swift in Sources */,
-				FBDF28C82F6665E400E61ACD /* Helpers.swift in Sources */,
 				FB9900012EF90516007D4364 /* ShapeResizer.swift in Sources */,
 				FB99FFFD2EF8FCE8007D4364 /* ResizeHandle.swift in Sources */,
 				FB5B17342EB460B800128AD0 /* drawing_document.swift in Sources */,
